@@ -57,10 +57,6 @@ class ExtractionError(IngestionError):
     """Azure returned a result, but it could not be turned into structured content."""
 
 
-class EmptyExtractionError(ExtractionError):
-    """Azure returned successfully but produced no usable content."""
-
-
 class ValidationFailedError(IngestionError):
     """A constructed `DocumentRecord` failed validation before persistence."""
 

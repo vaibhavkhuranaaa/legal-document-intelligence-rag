@@ -28,8 +28,21 @@ coverage.xml
 htmlcov/
 
 # Data (public corpus is downloaded/reproducible, not committed)
-data/raw/
-data/processed/
+# Directory structure is preserved via .gitkeep; contents are not.
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/failed/*
+!data/failed/.gitkeep
+
+# Run logs and manifest reports
+logs/*
+!logs/.gitkeep
+
+# Generated artifacts (structure preserved via .gitkeep; contents are not)
+artifacts/*
+!artifacts/.gitkeep
 
 # Vector store persistence
 .chroma/

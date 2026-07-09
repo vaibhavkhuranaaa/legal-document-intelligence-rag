@@ -16,6 +16,9 @@ dependencies = [
     "pydantic-settings>=2.4",
 ]
 
+[project.scripts]
+legal-rag-ingest = "legal_rag.ingestion.cli:main"
+
 [project.optional-dependencies]
 # Populated in later phases as each integration is implemented and approved.
 azure = []

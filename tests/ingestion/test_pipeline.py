@@ -10,7 +10,7 @@ from azure.ai.documentintelligence.models import (
 
 from legal_rag.ingestion.config import IngestionSettings
 from legal_rag.ingestion.exceptions import AzureServiceError
-from legal_rag.ingestion.models import ExtractionStatus
+from legal_rag.ingestion.models import DocumentRecord, ExtractionStatus
 from legal_rag.ingestion.normalization import NormalizedDocument
 from legal_rag.ingestion.pipeline import run_pipeline
 from tests.ingestion.conftest import FakeStorageBackend
@@ -136,6 +136,25 @@ def test_run_pipeline_records_semantic_validation_failure_with_preserved_documen
     assert entry.extraction_status == ExtractionStatus.FAILED
     assert entry.document_id is not None
     assert "SemanticValidationError" in (entry.error or "")
+
+
+def test_run_pipeline_records_schema_validation_failure(
+    settings: IngestionSettings, logger: logging.Logger, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def _broken_mapper(**_kwargs: object) -> object:
+        return DocumentRecord.model_validate({})
+
+    monkeypatch.setattr("legal_rag.ingestion.pipeline.to_document_record", _broken_mapper)
+
+    storage = FakeStorageBackend({"weird.pdf": b"%PDF-weird"})
+    client = _FakeAzureClient({"weird.pdf": _analyze_result()})
+
+    report = run_pipeline(settings=settings, storage=storage, client=client, logger=logger)  # type: ignore[arg-type]
+
+    entry = report.entries[0]
+    assert entry.extraction_status == ExtractionStatus.FAILED
+    assert entry.document_id is None
+    assert "SchemaValidationError" in (entry.error or "")
 
 
 def test_run_pipeline_isolates_unexpected_exceptions(

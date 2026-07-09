@@ -3,7 +3,6 @@ import pytest
 from legal_rag.ingestion.exceptions import (
     AzureServiceError,
     CorruptedDocumentError,
-    EmptyExtractionError,
     ExtractionError,
     InfrastructureError,
     IngestionError,
@@ -26,7 +25,6 @@ from legal_rag.ingestion.exceptions import (
         (AzureServiceError, InfrastructureError),
         (StorageError, InfrastructureError),
         (ExtractionError, IngestionError),
-        (EmptyExtractionError, ExtractionError),
         (ValidationFailedError, IngestionError),
         (SchemaValidationError, ValidationFailedError),
         (SemanticValidationError, ValidationFailedError),

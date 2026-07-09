@@ -140,8 +140,10 @@ def _handle_failure(
     context.logger.error(
         "document processing failed",
         extra={
+            "document_id": document_id,
             "error_type": type(error).__name__,
             "processing_duration_seconds": duration,
+            "extraction_status": ExtractionStatus.FAILED.value,
         },
     )
     return ManifestEntry(
