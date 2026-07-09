@@ -61,7 +61,7 @@ infrastructure implementations it constructs (`LocalStorageBackend`,
 
 ## Key architectural decisions
 
-Full rationale in `docs/decisions.md` (ADR-0004 through ADR-0010):
+Full rationale in `docs/decisions.md` (ADR-0004 through ADR-0011):
 
 - Vendor SDK types are isolated behind `adapter.py`/`client.py`; no other module depends on Azure SDK objects.
 - Storage is abstracted behind `StorageBackend` (read/write source documents, processed output, failure records, run reports) so Blob Storage can be added later without touching business logic.
@@ -96,14 +96,23 @@ section documents where future work would plug in, not current capability:
   transition.
 - **`mypy`** — deliberately deferred per ADR-0003 until the codebase has
   more surface area; not configured in Phase 1.
+- **Native SEC EDGAR HTML ingestion** — approved, deferred future
+  enhancement (ADR-0011). SEC EDGAR serves nearly all modern filings as
+  HTML, not PDF; the pipeline currently only accepts PDF/image formats.
+  Two candidate designs (HTML→PDF normalization in front of the existing
+  pipeline, vs. a native HTML parser feeding `RawDocument` directly) are
+  documented in ADR-0011 along with their tradeoffs. Intentionally deferred
+  until Phase 1.5's PDF pipeline validation is complete, so as not to
+  introduce a second ingestion format as a confounding variable mid-validation.
 
 ## Roadmap
 
-Phase 1 (this document) is complete. The next phase is **Phase 1.5 (Azure
-Integration)** — configuring real Azure Document Intelligence resources and
-running the pipeline against real SEC EDGAR documents, per `docs/roadmap.md`.
-No Phase 1.5 work has begun; this document does not define its scope beyond
-that name, since it has not yet been designed or approved.
+Phase 1 (this document) is complete. Phase 1.5 (Azure Integration) is in
+progress: Azure Document Intelligence and Azure OpenAI resources have been
+provisioned, model deployments (`gpt-5-mini`, `text-embedding-3-small`)
+verified, and connectivity confirmed against both services. The current
+Phase 1.5 objective is validating the existing PDF ingestion pipeline
+end-to-end against real legal documents, per `docs/roadmap.md`.
 
 ## Known limitations (heuristics, not guarantees)
 

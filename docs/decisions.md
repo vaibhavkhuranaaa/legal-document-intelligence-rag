@@ -231,3 +231,110 @@ content hash exists when it doesn't.
 **Consequences:** Consumers of `ManifestEntry` must handle `document_id`
 being `None` and use `correlation_id` as the always-present tracking key for
 failed documents.
+
+---
+
+## ADR-0011: Native SEC EDGAR HTML ingestion is an approved, deferred future enhancement
+
+**Context:** While selecting real documents for Phase 1.5 validation, direct
+inspection of SEC EDGAR confirmed that essentially all modern filings —
+merger agreements, asset purchase agreements, proxy statements — are served
+as `.htm`, not `.pdf`. Native PDF exhibits are effectively extinct on EDGAR
+for these document types (this has been true since EDGAR's shift to
+structured HTML filings in the early 2000s). The pipeline's `normalization.py`
+only accepts PDF and raster image formats by design (see its module
+docstring: "no format conversion happens here"), so real EDGAR filings
+currently require an out-of-pipeline HTML→PDF conversion step before they
+can be ingested at all.
+
+**Why this matters strategically:** the project's stated corpus source
+(`docs/product.md`) is SEC EDGAR. Long-term, requiring every document to be
+manually converted before ingestion is a real limitation on the platform's
+usability and on how directly it can be pointed at a live EDGAR corpus
+(e.g., an automated download-and-ingest pipeline). Native HTML support would
+also, in principle, preserve *more* structural signal than a PDF
+intermediary — HTML carries semantic tags (`<h1>`, `<table>`, list nesting)
+that a PDF rendering flattens into position-only layout, which is exactly
+the information `structure.py`'s heading-depth heuristics currently have to
+*reconstruct* from Azure's flat paragraph stream.
+
+**Decision:** Do not implement HTML ingestion now. Phase 1.5's sole
+objective is validating the existing PDF pipeline against real documents;
+introducing a second ingestion format during that validation would add a
+second variable to every result, making it unclear whether a problem is in
+the core pipeline or in new format-handling code. This is recorded as an
+**approved future enhancement**, not a rejected idea, to be scoped as its
+own dedicated milestone (tentatively Phase 1.6 / "Additional Document
+Sources") only after the PDF pipeline has a verified, stable production
+baseline. See `docs/roadmap.md` and `docs/PHASE1_SUMMARY.md`'s "Extension
+points" section for the forward pointers.
+
+**Two implementation options considered for that future milestone:**
+
+**Option A — HTML → HTML Normalization → PDF → existing pipeline**
+```
+HTML → HTML Normalization → PDF → Azure Document Intelligence (unchanged)
+```
+- *Implementation complexity:* Low. Adds one new normalization step (an
+  HTML→PDF renderer, e.g. a headless-browser-based converter) ahead of the
+  existing, unmodified pipeline. `adapter.py`, `structure.py`, `mapper.py`,
+  `validation.py` need no changes at all.
+- *Maintainability:* High — the large majority of the pipeline (everything
+  from Azure onward) is completely untouched, so this option carries almost
+  no ongoing maintenance burden beyond the converter itself.
+- *OCR accuracy:* Good — converting clean, machine-generated HTML to PDF
+  produces crisp, digitally-rendered text, which Azure Document Intelligence
+  reads at least as well as it reads today's manually-converted PDFs (this
+  is, in fact, exactly what was done manually for Phase 1.5's documents).
+- *Metadata preservation:* Limited to whatever survives the PDF rendering —
+  HTML's semantic structure (`<h1>`, `<table>`, nested lists) is flattened
+  into visual layout, so `structure.py` still has to *reconstruct* hierarchy
+  from position and heading-text heuristics, exactly as it does today. No
+  improvement over the current approach on this axis.
+- *Processing cost:* One extra conversion step per document (cheap, local,
+  no additional Azure spend) plus the unchanged Azure Document Intelligence
+  cost per page.
+- *Long-term scalability:* Good — this option is a thin adapter in front of
+  an already-proven pipeline, so it scales exactly as well as the existing
+  pipeline does.
+
+**Option B (preferred long-term vision) — HTML → Native HTML Parser →
+Internal Document Model → existing downstream pipeline**
+```
+HTML → Native HTML Parser → RawDocument (bypassing Azure) → structure.py → mapper.py → validation.py → storage
+```
+- *Implementation complexity:* Higher. Requires a new parser translating
+  HTML's DOM (headings, tables, paragraph roles) directly into the existing
+  `RawDocument`/`RawParagraph`/`RawTable` neutral models from `models.py` —
+  effectively a second "adapter," parallel to `adapter.py`, but for HTML
+  instead of Azure's `AnalyzeResult`. `structure.py` onward would be reused
+  unchanged, since they already operate on `RawDocument`.
+- *Maintainability:* A second parsing path to maintain long-term (HTML
+  structure varies more across filers/years than Azure's normalized output
+  does), but it inherits the same domain models and downstream stages, so it
+  doesn't fragment the schema or duplicate business logic.
+- *OCR accuracy:* Not applicable — no OCR occurs at all for these documents,
+  since the source text is already digital. This is a genuine accuracy
+  *ceiling improvement* over Option A: zero OCR-introduced error is possible
+  for HTML-sourced filings, versus Option A's (small but nonzero) OCR risk
+  from the PDF intermediary.
+- *Metadata preservation:* Best possible — HTML's actual semantic tags
+  (`<h1>`–`<h6>`, `<table>`, list nesting, `id`/anchor attributes for
+  cross-references) can be mapped directly to `RawParagraphRole`/hierarchy
+  depth, rather than inferred from heading-text numbering patterns the way
+  `structure.py` does today. This directly reduces reliance on the
+  documented heuristic limitations in `docs/PHASE1_SUMMARY.md`.
+- *Processing cost:* Lower than Option A for these documents — no Azure
+  Document Intelligence API call needed at all (zero per-page Azure cost),
+  since the parser reads structured HTML directly.
+- *Long-term scalability:* Best, but only after the upfront parser
+  investment — HTML parsing is significantly cheaper and faster than an
+  Azure API round-trip, so this option scales better to a large, automated
+  EDGAR-wide corpus. The risk is parser fragility across EDGAR's real-world
+  HTML variability (different filing agents produce different markup
+  conventions across decades of filings).
+
+**Consequences:** No code changes now. When this milestone is picked up,
+Option B is the preferred long-term target given its metadata and cost
+advantages, but Option A remains a reasonable, low-risk fallback if EDGAR's
+HTML variability makes a robust native parser impractical within scope.
