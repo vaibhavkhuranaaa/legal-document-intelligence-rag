@@ -171,7 +171,7 @@ class DocumentRecord(BaseModel):
 
 
 class ManifestEntry(BaseModel):
-    document_id: str
+    document_id: str | None = None
     run_id: str
     correlation_id: str
     source_file: str

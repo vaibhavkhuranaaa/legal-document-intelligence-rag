@@ -8,10 +8,13 @@ from legal_rag.ingestion.storage.base import StorageBackend
 
 
 class LocalStorageBackend(StorageBackend):
-    def __init__(self, *, input_dir: Path, output_dir: Path, failed_dir: Path) -> None:
+    def __init__(
+        self, *, input_dir: Path, output_dir: Path, failed_dir: Path, reports_dir: Path
+    ) -> None:
         self._input_dir = input_dir
         self._output_dir = output_dir
         self._failed_dir = failed_dir
+        self._reports_dir = reports_dir
 
     def list_source_documents(self) -> Iterator[str]:
         if not self._input_dir.exists():
@@ -32,8 +35,11 @@ class LocalStorageBackend(StorageBackend):
     def write_processed_document(self, document_id: str, content: bytes) -> str:
         return self._atomic_write(self._output_dir, f"{document_id}.json", content)
 
-    def write_failure_record(self, document_id: str, content: bytes) -> str:
-        return self._atomic_write(self._failed_dir, f"{document_id}.json", content)
+    def write_failure_record(self, record_id: str, content: bytes) -> str:
+        return self._atomic_write(self._failed_dir, f"{record_id}.json", content)
+
+    def write_run_report(self, run_id: str, content: bytes) -> str:
+        return self._atomic_write(self._reports_dir, f"{run_id}.json", content)
 
     def _resolve_input_path(self, ref: str) -> Path:
         resolved_input_dir = self._input_dir.resolve()

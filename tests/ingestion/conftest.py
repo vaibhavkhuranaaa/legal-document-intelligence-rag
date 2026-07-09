@@ -14,6 +14,7 @@ class FakeStorageBackend(StorageBackend):
         self._files = dict(files or {})
         self.written_processed: dict[str, bytes] = {}
         self.written_failed: dict[str, bytes] = {}
+        self.written_reports: dict[str, bytes] = {}
 
     def list_source_documents(self) -> Iterator[str]:
         yield from self._files
@@ -25,9 +26,13 @@ class FakeStorageBackend(StorageBackend):
         self.written_processed[document_id] = content
         return f"processed/{document_id}.json"
 
-    def write_failure_record(self, document_id: str, content: bytes) -> str:
-        self.written_failed[document_id] = content
-        return f"failed/{document_id}.json"
+    def write_failure_record(self, record_id: str, content: bytes) -> str:
+        self.written_failed[record_id] = content
+        return f"failed/{record_id}.json"
+
+    def write_run_report(self, run_id: str, content: bytes) -> str:
+        self.written_reports[run_id] = content
+        return f"reports/{run_id}.json"
 
 
 @pytest.fixture

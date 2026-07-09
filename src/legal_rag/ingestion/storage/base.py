@@ -27,5 +27,14 @@ class StorageBackend(ABC):
         """Persist processed document bytes; return the location written to."""
 
     @abstractmethod
-    def write_failure_record(self, document_id: str, content: bytes) -> str:
-        """Persist a failure record's bytes; return the location written to."""
+    def write_failure_record(self, record_id: str, content: bytes) -> str:
+        """Persist a failure record's bytes; return the location written to.
+
+        `record_id` is a filing key, not necessarily a real document ID — a
+        document that fails before a content-derived ID can be computed is
+        filed under its processing correlation ID instead (see ADR-0009).
+        """
+
+    @abstractmethod
+    def write_run_report(self, run_id: str, content: bytes) -> str:
+        """Persist a run's manifest report bytes; return the location written to."""

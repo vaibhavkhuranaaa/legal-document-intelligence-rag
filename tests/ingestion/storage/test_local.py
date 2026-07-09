@@ -12,6 +12,7 @@ def backend(tmp_path: Path) -> LocalStorageBackend:
         input_dir=tmp_path / "raw",
         output_dir=tmp_path / "processed",
         failed_dir=tmp_path / "failed",
+        reports_dir=tmp_path / "reports",
     )
 
 
@@ -67,12 +68,22 @@ def test_write_processed_document_creates_dir_and_writes_content(
 def test_write_failure_record_creates_dir_and_writes_content(
     backend: LocalStorageBackend,
 ) -> None:
-    output_path = backend.write_failure_record("doc-2", b'{"error": "corrupted"}')
+    output_path = backend.write_failure_record("correlation-2", b'{"error": "corrupted"}')
 
     written = Path(output_path)
     assert written.exists()
     assert written.read_bytes() == b'{"error": "corrupted"}'
     assert written.parent == backend._failed_dir
+
+
+def test_write_run_report_creates_dir_and_writes_content(backend: LocalStorageBackend) -> None:
+    output_path = backend.write_run_report("run-1", b'{"run_id": "run-1"}')
+
+    written = Path(output_path)
+    assert written.exists()
+    assert written.read_bytes() == b'{"run_id": "run-1"}'
+    assert written.parent == backend._reports_dir
+    assert written.name == "run-1.json"
 
 
 def test_write_processed_document_leaves_no_tmp_file(backend: LocalStorageBackend) -> None:

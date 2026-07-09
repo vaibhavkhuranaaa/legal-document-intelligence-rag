@@ -174,3 +174,60 @@ environment itself.
 where env-var names are defined. Tests that need different configuration call
 `get_settings.cache_clear()` after patching the environment, rather than
 monkeypatching scattered `os.getenv` calls throughout the codebase.
+
+---
+
+## ADR-0009: Run reports are persisted through `StorageBackend`, not the filesystem directly
+
+**Context:** `pipeline.py`'s orchestrator produces a `RunReport` summarizing
+every document processed in a run. The original Phase 1 directory design
+placed run reports under `logs/`, which raised the question of whether
+`pipeline.py` should write them directly via `pathlib`, bypassing the storage
+abstraction built for ADR-0005.
+
+**Decision:** `StorageBackend` gains a fourth method, `write_run_report(run_id,
+content) -> str`, alongside the three document-I/O methods. `pipeline.py`
+calls this instead of touching the filesystem itself, keeping it fully
+independent of the persistence mechanism — consistent with ADR-0005's goal
+of `pipeline.py` never depending on `pathlib` or any concrete storage
+implementation.
+
+**Alternatives considered:** Writing the `RunReport` directly to
+`settings.logs_dir` from `pipeline.py` — rejected because it would
+reintroduce exactly the filesystem coupling ADR-0005 removed, just for a
+different artifact, and would need separate handling again when Blob
+Storage or Azure Functions are introduced.
+
+**Consequences:** `LocalStorageBackend` takes a fourth constructor parameter,
+`reports_dir`. A future `storage/blob.py` implementation must also implement
+`write_run_report`, alongside the other three methods.
+
+---
+
+## ADR-0010: No path-derived document ID fallback on early failures
+
+**Context:** A document can fail before `mapper.compute_document_id()` ever
+runs (e.g. `UnsupportedFormatError`, raised before any bytes are read). The
+`ManifestEntry` and failure record still need a stable identifier to file
+the failure under.
+
+**Decision:** `ManifestEntry.document_id` is `str | None` — `None` when no
+content-derived ID could be computed, never a fallback hash derived from the
+file path or ref. Every document already gets a `correlation_id` (generated
+before any processing begins) that uniquely identifies its processing
+attempt within a run; this is the identifier `write_failure_record` files
+under and the field a human or downstream tool uses to track a failed
+document. If a real `document_id` *was* computed before the failure occurred
+(e.g. a document that fails semantic validation, which happens after
+`document_id` is known), it is preserved in the exception's `context` and
+still populates `ManifestEntry.document_id`.
+
+**Alternatives considered:** Hashing the file path/ref as a fallback
+pseudo-document-ID — rejected because it would silently conflate a real,
+content-addressed identity with a manufactured one that looks identical in
+the schema, misleading anyone reading the manifest into thinking a stable
+content hash exists when it doesn't.
+
+**Consequences:** Consumers of `ManifestEntry` must handle `document_id`
+being `None` and use `correlation_id` as the always-present tracking key for
+failed documents.
