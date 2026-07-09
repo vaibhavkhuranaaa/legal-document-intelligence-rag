@@ -10,7 +10,11 @@ classifiers = [
     "Private :: Do Not Upload",
     "Programming Language :: Python :: 3.12",
 ]
-dependencies = []
+dependencies = [
+    "azure-ai-documentintelligence>=1.0.0",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.4",
+]
 
 [project.optional-dependencies]
 # Populated in later phases as each integration is implemented and approved.
