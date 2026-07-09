@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+
+# uv
+# (uv.lock is intentionally NOT ignored — it is committed for reproducible installs)
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Testing / tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Data (public corpus is downloaded/reproducible, not committed)
+data/raw/
+data/processed/
+
+# Vector store persistence
+.chroma/
+chroma_db/
+
+# Streamlit (config.toml is fine to commit; secrets.toml is credentials)
+.streamlit/secrets.toml
+
+# Azure CLI / azd local state
+.azure/
+
+# IDE / OS
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
