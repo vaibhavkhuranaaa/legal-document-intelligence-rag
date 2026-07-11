@@ -12,12 +12,18 @@ classifiers = [
 ]
 dependencies = [
     "azure-ai-documentintelligence>=1.0.0",
+    "chromadb>=0.5",
+    "openai>=1.50",
     "pydantic>=2.7",
     "pydantic-settings>=2.4",
+    "rank-bm25>=0.2",
+    "streamlit>=1.38",
 ]
 
 [project.scripts]
 legal-rag-ingest = "legal_rag.ingestion.cli:main"
+legal-rag-index = "legal_rag.rag.index_cli:main"
+legal-rag-ask = "legal_rag.rag.ask_cli:main"
 
 [project.optional-dependencies]
 # Populated in later phases as each integration is implemented and approved.
