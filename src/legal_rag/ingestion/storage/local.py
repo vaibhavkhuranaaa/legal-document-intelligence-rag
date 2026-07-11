@@ -20,7 +20,10 @@ class LocalStorageBackend(StorageBackend):
         if not self._input_dir.exists():
             return
         for path in sorted(self._input_dir.iterdir()):
-            if path.is_file():
+            # Dotfiles (.gitkeep, .DS_Store) are filesystem artifacts, not
+            # source documents — listing them would generate a failure
+            # record on every run.
+            if path.is_file() and not path.name.startswith("."):
                 yield path.name
 
     def read_source_document(self, ref: str) -> bytes:

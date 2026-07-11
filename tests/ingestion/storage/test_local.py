@@ -26,6 +26,16 @@ def test_list_source_documents_yields_files_sorted(backend: LocalStorageBackend)
     assert list(backend.list_source_documents()) == ["a.pdf", "b.pdf"]
 
 
+def test_list_source_documents_skips_dotfiles(backend: LocalStorageBackend) -> None:
+    input_dir = backend._input_dir
+    input_dir.mkdir(parents=True)
+    (input_dir / ".gitkeep").write_bytes(b"")
+    (input_dir / ".DS_Store").write_bytes(b"junk")
+    (input_dir / "real.pdf").write_bytes(b"%PDF-")
+
+    assert list(backend.list_source_documents()) == ["real.pdf"]
+
+
 def test_list_source_documents_missing_dir_yields_nothing(backend: LocalStorageBackend) -> None:
     assert list(backend.list_source_documents()) == []
 

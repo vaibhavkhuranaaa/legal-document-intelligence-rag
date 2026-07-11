@@ -8,7 +8,13 @@ from legal_rag.ingestion.config import get_settings
 
 
 @pytest.fixture(autouse=True)
-def _reset_state() -> None:
+def _reset_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # chdir into an empty tmp dir so a developer's real `.env` (which
+    # pydantic-settings reads relative to the cwd, taking precedence over
+    # monkeypatch.delenv) can never leak real Azure credentials into these
+    # tests — without this, the invalid-settings test would load the real
+    # key and perform a paid, live ingestion run.
+    monkeypatch.chdir(tmp_path)
     get_settings.cache_clear()
     namespace_logger = logging.getLogger("legal_rag")
     namespace_logger.handlers.clear()

@@ -77,6 +77,7 @@ def _process_document_inner(
         pipeline_version=context.settings.pipeline_version,
         extracted_at=datetime.now(UTC),
         extraction_status=ExtractionStatus.SUCCESS,
+        warnings=document_structure.warnings,
     )
 
     validation_result = validate(record)

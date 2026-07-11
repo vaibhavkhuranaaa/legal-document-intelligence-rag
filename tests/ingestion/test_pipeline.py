@@ -88,6 +88,44 @@ def test_run_pipeline_processes_single_document_successfully(
     assert report.pipeline_version == "1.0.0-test"
 
 
+def test_run_pipeline_persists_structure_warnings(
+    settings: IngestionSettings, logger: logging.Logger
+) -> None:
+    """Parser ambiguity warnings must reach the persisted record and manifest,
+    not die inside the pipeline."""
+
+    def _heading(text: str, y: float) -> DocumentParagraph:
+        return DocumentParagraph(
+            role="sectionHeading",
+            content=text,
+            bounding_regions=[BoundingRegion(page_number=1, polygon=[0, y, 1, y + 1])],
+            spans=[],
+        )
+
+    # "C." is ambiguous (Roman/letter) against two open depths -> warning.
+    result = _analyze_result(
+        paragraphs=[
+            _heading("II. Intro", 0),
+            _heading("A. Sub", 1),
+            _heading("C. Baz", 2),
+            _paragraph("Body text."),
+        ]
+    )
+    storage = FakeStorageBackend({"warn.pdf": b"%PDF-warn"})
+    client = _FakeAzureClient({"warn.pdf": result})
+
+    report = run_pipeline(settings=settings, storage=storage, client=client, logger=logger)  # type: ignore[arg-type]
+
+    entry = report.entries[0]
+    assert entry.extraction_status == ExtractionStatus.SUCCESS
+    assert len(entry.warnings) == 1
+    assert "ambiguous heading style" in entry.warnings[0]
+    import json
+
+    record = json.loads(storage.written_processed[entry.document_id])
+    assert record["extraction"]["warnings"] == entry.warnings
+
+
 def test_run_pipeline_records_unsupported_format_as_failure(
     settings: IngestionSettings, logger: logging.Logger
 ) -> None:
