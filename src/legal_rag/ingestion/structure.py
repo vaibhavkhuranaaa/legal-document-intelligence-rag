@@ -4,9 +4,23 @@ Azure Document Intelligence's `prebuilt-layout` model does not return a
 heading hierarchy — every heading paragraph is tagged either `title` or
 `sectionHeading`, with no depth information. This module infers depth from
 the heading text's own numbering convention (e.g. "ARTICLE I", "1.1",
-"(a)"), which is how M&A legal documents are actually structured. This is a
-heuristic, not a guarantee, as noted in the approved Phase 1 design (Section
-3: Azure Document Intelligence limitations).
+"(a)", "I.", "A."), which is how legal documents are actually structured.
+This is a heuristic, not a guarantee, as noted in the approved Phase 1
+design (Section 3: Azure Document Intelligence limitations).
+
+Heading conventions are represented as a small, extensible registry of
+`_HeadingStyle` entries rather than a fixed if/elif chain, so future styles
+(e.g. "Section", "Schedule", "Exhibit") can be added by extending
+`_HEADING_STYLES` without changing the resolution algorithm. Each style is
+either "absolute" (its own text unambiguously encodes depth, e.g. dotted
+decimals) or "relative" (depth is only meaningful relative to which styles
+are already open — e.g. a bare "I." or "A." is a sibling if a matching style
+is already open on the stack, otherwise a new, deeper level). Relative-style
+depth resolution is deterministic and never silently guesses: when a
+heading's text is genuinely ambiguous between styles (e.g. "C." is valid as
+both a Roman numeral and a letter) and those interpretations match open
+sections at *different* depths, the shallowest matching depth is chosen and
+a structured warning is recorded — see `_resolve_heading_depth`.
 
 `page_header` / `page_footer` paragraphs (running boilerplate, e.g. "Page 3
 of 87") are excluded entirely — they are not body content. `footnote`
@@ -22,7 +36,8 @@ limitation for multi-column layouts.
 """
 
 import re
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
 
 from legal_rag.ingestion.models import (
     BoundingRegion,
@@ -44,12 +59,44 @@ _HEADING_ROLES = frozenset({RawParagraphRole.TITLE, RawParagraphRole.SECTION_HEA
 _ARTICLE_PATTERN = re.compile(r"^ARTICLE\s+", re.IGNORECASE)
 _DECIMAL_PATTERN = re.compile(r"^(\d+(?:\.\d+)*)\.?\s")
 _SUB_ITEM_PATTERN = re.compile(r"^\(?[a-zA-Z]\)|^\(?[ivxlcdm]+\)", re.IGNORECASE)
+_ROMAN_UPPER_PATTERN = re.compile(r"^([IVXLCDM]+)\.\s")
+_LETTER_UPPER_PATTERN = re.compile(r"^([A-Z])\.\s")
+_LETTER_LOWER_PATTERN = re.compile(r"^([a-z])\.\s")
+_ROMAN_LOWER_PATTERN = re.compile(r"^([ivxlcdm]+)\.\s")
+
+
+@dataclass(frozen=True)
+class _HeadingStyle:
+    """A recognized heading numbering convention.
+
+    `absolute_depth`, when set, computes depth directly from the style's own
+    matched text (e.g. "ARTICLE" is always depth 1; a dotted decimal's depth
+    is its dot count). Left as `None` for "relative" styles, whose depth has
+    no meaning on its own — it is only resolved relative to which styles are
+    already open (see `_resolve_heading_depth`).
+    """
+
+    name: str
+    pattern: re.Pattern[str]
+    absolute_depth: Callable[[re.Match[str]], int] | None = None
+
+
+_HEADING_STYLES: tuple[_HeadingStyle, ...] = (
+    _HeadingStyle("article", _ARTICLE_PATTERN, absolute_depth=lambda m: 1),
+    _HeadingStyle("decimal", _DECIMAL_PATTERN, absolute_depth=lambda m: m.group(1).count(".") + 1),
+    _HeadingStyle("sub_item_paren", _SUB_ITEM_PATTERN),
+    _HeadingStyle("roman_upper", _ROMAN_UPPER_PATTERN),
+    _HeadingStyle("letter_upper", _LETTER_UPPER_PATTERN),
+    _HeadingStyle("letter_lower", _LETTER_LOWER_PATTERN),
+    _HeadingStyle("roman_lower", _ROMAN_LOWER_PATTERN),
+)
 
 
 @dataclass(frozen=True)
 class DocumentStructure:
     structure: list[Section]
     elements: list[Element]
+    warnings: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -64,6 +111,14 @@ class _ReadingOrderItem:
 class _OpenSection:
     section: Section
     depth: int
+    styles: frozenset[str] = frozenset()
+
+
+@dataclass(frozen=True)
+class _DepthResolution:
+    depth: int
+    styles: frozenset[str]
+    warning: str | None = None
 
 
 def _min_y(regions: list[BoundingRegion]) -> float:
@@ -72,21 +127,63 @@ def _min_y(regions: list[BoundingRegion]) -> float:
     return min(regions[0].polygon[1::2])
 
 
-def _infer_heading_depth(text: str, *, current_open_depth: int) -> int:
-    """Infer a heading's nesting depth from its own numbering convention."""
-    stripped = text.strip()
+def _match_styles(text: str) -> list[tuple[_HeadingStyle, re.Match[str]]]:
+    matches = []
+    for style in _HEADING_STYLES:
+        match = style.pattern.match(text)
+        if match:
+            matches.append((style, match))
+    return matches
 
-    if _ARTICLE_PATTERN.match(stripped):
-        return 1
 
-    decimal_match = _DECIMAL_PATTERN.match(stripped)
-    if decimal_match:
-        return decimal_match.group(1).count(".") + 1
+def _resolve_heading_depth(
+    text: str, *, page_number: int, stack: list[_OpenSection]
+) -> _DepthResolution:
+    """Resolve a heading's nesting depth deterministically — never guesses.
 
-    if _SUB_ITEM_PATTERN.match(stripped):
-        return current_open_depth + 1 if current_open_depth else 1
+    - No style matches: a new level, one deeper than whatever is open.
+    - An absolute style matches (article/decimal): depth comes directly
+      from that style's own text, unaffected by what's open.
+    - Exactly one relative style's candidates match an open section: reuse
+      that section's depth (sibling).
+    - No relative candidate matches anything open: a new, deeper level.
+    - Multiple relative candidates match open sections at *different*
+      depths: genuinely ambiguous — the shallowest matching depth is chosen
+      (to avoid artificial over-nesting) and a structured warning is
+      returned with the competing interpretations for debugging.
+    """
+    matches = _match_styles(text)
+    if not matches:
+        depth = stack[-1].depth + 1 if stack else 1
+        return _DepthResolution(depth=depth, styles=frozenset())
 
-    return current_open_depth + 1 if current_open_depth else 1
+    for style, match in matches:
+        if style.absolute_depth is not None:
+            return _DepthResolution(depth=style.absolute_depth(match), styles=frozenset())
+
+    candidate_names = frozenset(style.name for style, _ in matches)
+    matched_depths: dict[int, set[str]] = {}
+    for open_section in reversed(stack):
+        overlap = open_section.styles & candidate_names
+        if overlap:
+            matched_depths.setdefault(open_section.depth, set()).update(overlap)
+
+    if not matched_depths:
+        depth = stack[-1].depth + 1 if stack else 1
+        return _DepthResolution(depth=depth, styles=candidate_names)
+
+    if len(matched_depths) == 1:
+        (depth,) = matched_depths.keys()
+        return _DepthResolution(depth=depth, styles=candidate_names)
+
+    shallowest = min(matched_depths)
+    warning = (
+        f"ambiguous heading style for {text!r} (page {page_number}): "
+        f"candidate styles {sorted(candidate_names)} matched open sections at "
+        f"depths {sorted(matched_depths)}; chose shallowest depth {shallowest} "
+        "to avoid artificial over-nesting"
+    )
+    return _DepthResolution(depth=shallowest, styles=candidate_names, warning=warning)
 
 
 def _build_reading_order(document: RawDocument) -> list[_ReadingOrderItem]:
@@ -118,6 +215,7 @@ def _open_section(
     heading_text: str,
     depth: int,
     page_number: int,
+    styles: frozenset[str],
 ) -> Section:
     while stack and stack[-1].depth >= depth:
         stack.pop()
@@ -138,13 +236,14 @@ def _open_section(
         parent.children.append(section)
     else:
         structure.append(section)
-    stack.append(_OpenSection(section=section, depth=depth))
+    stack.append(_OpenSection(section=section, depth=depth, styles=styles))
     return section
 
 
 def build_structure(document: RawDocument) -> DocumentStructure:
     structure: list[Section] = []
     elements: list[Element] = []
+    warnings: list[str] = []
     stack: list[_OpenSection] = []
     next_element_id = 1
 
@@ -161,15 +260,18 @@ def build_structure(document: RawDocument) -> DocumentStructure:
             next_element_id += 1
 
             if paragraph.role in _HEADING_ROLES:
-                depth = _infer_heading_depth(
-                    paragraph.text, current_open_depth=stack[-1].depth if stack else 0
+                resolution = _resolve_heading_depth(
+                    paragraph.text, page_number=paragraph.page_number, stack=stack
                 )
+                if resolution.warning:
+                    warnings.append(resolution.warning)
                 section = _open_section(
                     stack=stack,
                     structure=structure,
                     heading_text=paragraph.text,
-                    depth=depth,
+                    depth=resolution.depth,
                     page_number=paragraph.page_number,
+                    styles=resolution.styles,
                 )
                 section.content.append(element_id)
                 elements.append(
@@ -221,4 +323,4 @@ def build_structure(document: RawDocument) -> DocumentStructure:
                 )
             )
 
-    return DocumentStructure(structure=structure, elements=elements)
+    return DocumentStructure(structure=structure, elements=elements, warnings=warnings)
