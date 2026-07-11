@@ -4,6 +4,10 @@ A production-grade **Legal Document Intelligence platform** built on Azure: real
 court documents go in as PDFs, and citation-backed answers come out — every claim
 grounded in a retrieved passage with the exact case, section, and page number.
 
+> **Picking this project back up (including in a new AI chat session)?** Read
+> [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) first — a self-contained
+> summary, use case, current state, and prioritized "how to improve" roadmap.
+
 Built as an AI engineering portfolio project demonstrating the full lifecycle:
 document ingestion via Azure Document Intelligence, structure-aware chunking,
 hybrid retrieval (vector + BM25), and grounded generation via Azure OpenAI —
