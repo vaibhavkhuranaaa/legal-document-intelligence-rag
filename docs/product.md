@@ -46,8 +46,19 @@ traceable to, the source document.
 
 ## Supported Documents
 
-Only public documents are used — sourced from SEC EDGAR. No confidential,
-proprietary, or client documents are ever used.
+Only public documents are used. No confidential, proprietary, or client
+documents are ever used.
+
+The product scope is **M&A transaction documents and related litigation**
+(broadened per ADR-0012; see `docs/decisions.md`):
+
+**M&A litigation (current validated corpus — native PDF):**
+
+- Delaware Court of Chancery and Delaware Supreme Court opinions on
+  appraisal rights, merger disclosure, and fiduciary duties
+
+**SEC EDGAR transaction documents (joins the corpus when HTML ingestion,
+ADR-0011, is implemented):**
 
 - SEC Form 8-K
 - SEC Form S-4

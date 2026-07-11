@@ -1,79 +1,123 @@
 # Legal Document Intelligence RAG
 
-Production-grade Retrieval-Augmented Generation (RAG) system over a public legal
-document corpus, built on Azure. This is a portfolio project demonstrating
-end-to-end AI engineering: document ingestion, retrieval, and generation, deployed
-as a working web application.
+A production-grade **Legal Document Intelligence platform** built on Azure: real
+court documents go in as PDFs, and citation-backed answers come out — every claim
+grounded in a retrieved passage with the exact case, section, and page number.
 
-## Status
+Built as an AI engineering portfolio project demonstrating the full lifecycle:
+document ingestion via Azure Document Intelligence, structure-aware chunking,
+hybrid retrieval (vector + BM25), and grounded generation via Azure OpenAI —
+with production engineering throughout (typed schemas, dependency injection,
+structured logging, per-document failure isolation, 131 tests, CI, and eleven
+Architecture Decision Records).
 
-**Phase 0 — Repository bootstrap.** No application functionality exists yet. This
-repository currently contains only the project foundation (structure, dependency
-management, linting, test harness). See [docs/roadmap.md](docs/roadmap.md) for
-what's planned, [docs/architecture.md](docs/architecture.md) for the system
-design as it's built out, and [docs/decisions.md](docs/decisions.md) for why
-things are set up the way they are.
+## What it does
 
-## Data source policy
+Ask a question about the corpus of Delaware M&A litigation:
 
-This project uses **public, non-confidential legal documents only** (e.g.,
-CourtListener bulk opinions, SEC EDGAR filings). No real client, firm, or case
-data is ever used, so the repository and its contents are safe to be public.
+```
+$ legal-rag-ask "Why did the plaintiff in Abraham v. Wirtz fail to get a quasi-appraisal remedy?"
 
-## Planned stack
+Because he failed to perfect his statutory appraisal rights. The court held
+that "Having failed to perfect his appraisal rights, Plaintiff is not
+entitled to a quasi-appraisal remedy." [1][5] ...
 
-- **Language:** Python 3.12
-- **Document parsing:** Azure Document Intelligence
-- **LLM / embeddings:** Azure OpenAI
-- **Orchestration:** LangChain
-- **Vector store:** Chroma (development), Azure AI Search (future production option)
-- **UI:** Streamlit
-- **Deployment:** Azure App Service
+Sources:
+  [1] Abraham v. Estate of Wirtz (Del. Ch. 2025) — 3. Having Failed To
+      Perfect His Appraisal Rights ... (p. 20)
+  [4] Abraham v. Estate of Wirtz (Del. Ch. 2025) — 2. Plaintiff Made A
+      Demand For Appraisal But Failed To Perfect His Rights ... (p. 17)
+```
+
+Questions outside the corpus are **refused, not hallucinated** — the model must
+cite retrieved passages or say the documents don't contain the answer.
+
+## Architecture
+
+```
+PDF corpus (public Delaware M&A litigation)
+  → Azure Document Intelligence (layout extraction, S0)
+  → vendor-neutral adapter (Azure SDK types never escape it)
+  → legal-outline parser (heading-style registry + ambiguity warnings)
+  → versioned DocumentRecord schema (section tree + flat cited elements)
+  → structure-aware chunking (typed: text/table, section-path context)
+  → Azure OpenAI embeddings (text-embedding-3-small)
+  → hybrid retrieval: Chroma vector + BM25 lexical, RRF-fused
+  → grounded generation (gpt-5-mini, citation-required prompting)
+  → Streamlit UI / CLI with resolved case–section–page citations
+```
+
+Key engineering decisions are documented as ADRs in
+[docs/decisions.md](docs/decisions.md); the full system review lives in
+[docs/ARCHITECTURE_REVIEW.md](docs/ARCHITECTURE_REVIEW.md).
+
+## Corpus
+
+Four public Delaware M&A opinions (305 pages), registered with checksums and
+provenance in [data/dataset_manifest.json](data/dataset_manifest.json):
+
+| Case | Court | Pages |
+|---|---|---|
+| In re Appraisal of Dell Inc. (2015) | Del. Court of Chancery | 54 |
+| Dell, Inc. v. Magnetar (2017) | Del. Supreme Court | 84 |
+| HBK v. Pivotal Software (2023) | Del. Court of Chancery | 133 |
+| Abraham v. Estate of Wirtz (2025) | Del. Court of Chancery | 34 |
+
+**Public, non-confidential documents only.** No client, firm, or case data is
+ever used. Output is legal information, not legal advice.
+
+## Run the demo
+
+Requires [`uv`](https://docs.astral.sh/uv/) and an Azure subscription with
+Azure Document Intelligence + Azure OpenAI resources (see `.env.example` for
+the required configuration; `.env` is never committed).
+
+```bash
+uv sync                                   # environment + dependencies
+uv run legal-rag-ingest                   # PDFs -> structured JSON (Azure DI)
+uv run legal-rag-index                    # chunk + embed + build hybrid index
+uv run legal-rag-ask "your question"      # grounded Q&A in the terminal
+
+uv run streamlit run src/legal_rag/ui/streamlit_app.py   # web demo
+```
+
+## Development
+
+```bash
+uv run pytest          # 131 tests, no network calls, deterministic
+uv run ruff check .    # lint
+uv run ruff format .   # format
+```
+
+Every push and PR to `main` runs lint + tests via GitHub Actions
+([.github/workflows/ci.yml](.github/workflows/ci.yml)).
 
 ## Project structure
 
 ```
-.
-├── src/legal_rag/     # Application package (empty in Phase 0)
-├── tests/             # Test suite
-├── docs/              # Architecture, roadmap, and decision records
-├── pyproject.toml     # Single source of truth for dependencies and tooling config
-└── .env.example       # Documented environment variables (no real secrets)
+src/legal_rag/
+├── ingestion/    # discovery, normalization, Azure DI client + adapter,
+│                 # outline parser, schema mapping, validation, storage,
+│                 # manifests, structured logging
+├── rag/          # chunking, embeddings, hybrid store (Chroma+BM25),
+│                 # grounded answer service, index/ask CLIs
+└── ui/           # Streamlit demo app
+tests/            # unit + pipeline tests (fakes for Azure/storage)
+docs/             # ADRs, roadmap, phase summaries, architecture review
+data/             # dataset manifest (committed) + corpus/outputs (gitignored)
 ```
 
-## Development setup
+## Engineering principles
 
-Requires [`uv`](https://docs.astral.sh/uv/) installed. `uv` manages the Python
-3.12 interpreter and virtual environment itself — no system Python is touched.
-
-```bash
-# Create the virtual environment and install dependencies (including dev tools)
-uv sync
-
-# Run the test suite
-uv run pytest
-
-# Run the linter
-uv run ruff check .
-```
-
-Copy `.env.example` to `.env` and fill in real Azure credentials once later
-phases require them. `.env` is never committed.
-
-### Continuous integration
-
-Every push and pull request to `main` runs lint (`ruff check`) and the test
-suite (`pytest`) via GitHub Actions — see
-[.github/workflows/ci.yml](.github/workflows/ci.yml).
-
-## Principles
-
-- Production-quality code and structure from the first commit.
-- No placeholder implementations, no fabricated functionality or metrics.
-- Secrets are never hardcoded; all configuration flows through environment
-  variables (see `.env.example`).
-- Work proceeds one approved phase at a time; tradeoffs are documented in
-  [docs/decisions.md](docs/decisions.md) before major changes.
+- Production-quality code; no placeholder implementations, no fabricated
+  functionality or metrics.
+- Vendor SDKs isolated behind adapters; business logic never touches Azure
+  types (ADR-0004).
+- Every component receives dependencies by injection; configuration is loaded
+  exactly once (ADR-0008).
+- Secrets never hardcoded or committed; all configuration via environment.
+- One verified phase at a time — each layer validated against live Azure
+  services with real documents before the next is built.
 
 ## License
 

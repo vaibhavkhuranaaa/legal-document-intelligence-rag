@@ -19,23 +19,38 @@ Status: **Complete** (baseline tagged `v0.1.0-phase1`)
   structure reconstruction, schema mapping, validation, storage, and manifest
   reporting. See `docs/PHASE1_SUMMARY.md` for the complete architecture summary.
 
-## Phase 1.5 — Azure Environment & Live Validation (current)
+## Phase 1.5 — Azure Environment & Live Validation
 
-Status: **In progress**
+Status: **Complete**
 
-- Azure subscription discovery, resource provisioning (Document Intelligence,
-  Azure OpenAI), model deployments, and connectivity verification complete.
-- Current objective: validate the existing PDF ingestion pipeline end-to-end
-  against real legal documents in the live Azure environment, with no new
-  ingestion formats or preprocessing introduced during this validation.
+- Azure resources provisioned (Document Intelligence S0, Azure OpenAI with
+  `gpt-5-mini` and `text-embedding-3-small` deployments), connectivity
+  verified, and the full 4-document corpus (305 pages of public Delaware
+  M&A litigation) ingested end-to-end with zero failures. Section-hierarchy
+  heuristic enhanced (heading-style registry with deterministic ambiguity
+  warnings) and validated against live extractions.
+
+## Phase 2 — Demo RAG Stack (current)
+
+Status: **Working demo shipped; deployment pending**
+
+- Full retrieval-augmented answering loop, validated end-to-end against the
+  real corpus with real Azure services (see ADR-0012):
+  structure-aware typed chunking → Azure OpenAI embeddings → hybrid retrieval
+  (Chroma + BM25, RRF-fused) behind a `RetrievalBackend` interface →
+  citation-required grounded generation with an explicit refusal path →
+  Streamlit UI and `legal-rag-ask` CLI.
+- A full-platform architecture review (`docs/ARCHITECTURE_REVIEW.md`) defines
+  the target production architecture and the remaining milestones below.
 
 ## Future phases
 
-Not yet planned in detail beyond the approved enhancement below. Each future
-phase (chunking/embedding, vector store, retrieval + Azure OpenAI generation,
-Streamlit UI, Azure App Service deployment) will be scoped and added here
-immediately before it is implemented, along with the tradeoffs considered —
-not drafted in advance.
+Per the architecture review's priority roadmap: parser v2 (outline state
+machine), Azure DI span offsets for exact reading order, a gold-QA evaluation
+harness as a CI gate, then Azure deployment (App Service + Managed Identity +
+Azure AI Search as the production `RetrievalBackend`; requires subscription
+upgrade from Free Trial). Each will be scoped in detail immediately before
+implementation.
 
 ### Approved future enhancement: Native SEC EDGAR HTML Ingestion
 

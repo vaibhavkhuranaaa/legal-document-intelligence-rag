@@ -338,3 +338,42 @@ HTML → Native HTML Parser → RawDocument (bypassing Azure) → structure.py �
 Option B is the preferred long-term target given its metadata and cost
 advantages, but Option A remains a reasonable, low-risk fallback if EDGAR's
 HTML variability makes a robust native parser impractical within scope.
+
+---
+
+## ADR-0012: Corpus scope broadened to M&A litigation; demo RAG stack built on Chroma + BM25 hybrid retrieval
+
+**Context:** The product spec originally scoped the corpus to SEC EDGAR
+transaction documents, but EDGAR serves modern filings as HTML, which the
+pipeline does not ingest (ADR-0011). The validated corpus is public Delaware
+M&A litigation (appraisal and fiduciary-duty opinions) — native PDFs with
+high extraction quality and strong recognizability (Dell, VMware/Pivotal).
+The architecture review (docs/ARCHITECTURE_REVIEW.md, finding C1) required
+this drift to be resolved by an explicit decision before RAG layers were
+built.
+
+**Decision:** The product scope is broadened to "M&A transaction documents
+and related litigation." The current corpus (4 Delaware opinions, 305 pages)
+is the validated demo corpus; EDGAR transaction agreements join the corpus
+when HTML ingestion (ADR-0011) is implemented. The demo RAG stack follows
+the review's recommended architecture: structure-aware typed chunking (text
+and table chunks grouped by section path, footnote markers dropped, document
+title + section path prepended to embed text), hybrid retrieval (Chroma
+dense vectors + BM25 lexical, fused with reciprocal rank fusion) behind a
+`RetrievalBackend` interface, and citation-required grounded generation
+where the model cites numbered passage markers and the application — never
+the model — resolves them to case/section/page citations.
+
+**Alternatives considered:** Pulling HTML ingestion forward before any RAG
+work (rejected: delays the demonstrable product for a data-source expansion
+that changes no downstream architecture); naive fixed-size chunking
+(rejected: destroys the section/citation alignment the ingestion pipeline
+exists to produce); vector-only retrieval (rejected: legal queries are
+exact-term-heavy — docket numbers, statute cites, defined terms — and need
+a lexical leg).
+
+**Consequences:** `RetrievalBackend` has one implementation (local
+Chroma+BM25); Azure AI Search becomes a second implementation at the
+deployment milestone with no changes to chunking or answering. The
+`Chunk` schema is versioned separately from `DocumentRecord`, which stays
+frozen.
