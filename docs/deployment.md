@@ -20,6 +20,18 @@ python -m streamlit run src/legal_rag/ui/streamlit_app.py --server.address 0.0.0
 The file is versioned so the same command is used in every environment. App
 Service must be configured to use it as the startup command.
 
+`pyproject.toml` and `uv.lock` remain the dependency source of truth. The
+root [`requirements.txt`](../requirements.txt) is a committed App Service
+build artifact, generated whenever locked runtime dependencies change:
+
+```bash
+uv export --format requirements-txt --no-hashes --no-dev --output-file requirements.txt
+```
+
+App Service ZIP deployment must set `SCM_DO_BUILD_DURING_DEPLOYMENT=true` so
+Oryx creates the Linux virtual environment from this file. Do not hand-edit
+`requirements.txt`.
+
 ## Environment boundary
 
 Local development uses `.env`, API keys, filesystem-backed processed records,
