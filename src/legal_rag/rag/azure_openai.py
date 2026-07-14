@@ -7,6 +7,7 @@ callers never touch the `openai` SDK response shapes beyond this module.
 
 import time
 
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from openai import AzureOpenAI, RateLimitError
 
 from legal_rag.rag.config import RagSettings
@@ -19,11 +20,25 @@ _RATE_LIMIT_WAIT_SECONDS = 30.0
 class AzureOpenAIClient:
     def __init__(self, settings: RagSettings, *, sdk_client: AzureOpenAI | None = None) -> None:
         self._settings = settings
-        self._sdk_client = sdk_client or AzureOpenAI(
-            azure_endpoint=settings.azure_openai_endpoint,
-            api_key=settings.azure_openai_api_key.get_secret_value(),
-            api_version=settings.azure_openai_api_version,
-        )
+        if sdk_client is not None:
+            self._sdk_client = sdk_client
+        elif settings.azure_openai_auth_mode == "managed_identity":
+            token_provider = get_bearer_token_provider(
+                DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+            )
+            self._sdk_client = AzureOpenAI(
+                azure_endpoint=settings.azure_openai_endpoint,
+                azure_ad_token_provider=token_provider,
+                api_version=settings.azure_openai_api_version,
+            )
+        else:
+            if settings.azure_openai_api_key is None:
+                raise RuntimeError("API-key authentication was selected without an API key")
+            self._sdk_client = AzureOpenAI(
+                azure_endpoint=settings.azure_openai_endpoint,
+                api_key=settings.azure_openai_api_key.get_secret_value(),
+                api_version=settings.azure_openai_api_version,
+            )
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         """Embed a batch of texts, preserving input order.

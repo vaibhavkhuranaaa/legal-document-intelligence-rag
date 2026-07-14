@@ -25,7 +25,7 @@ from legal_rag.ingestion.config import get_settings
 from legal_rag.ingestion.logging_config import configure_logging, get_logger
 from legal_rag.ingestion.models import ExtractionStatus, RunReport
 from legal_rag.ingestion.pipeline import run_pipeline
-from legal_rag.ingestion.storage.local import LocalStorageBackend
+from legal_rag.ingestion.storage.factory import build_storage_backend
 
 
 def _summarize(report: RunReport) -> str:
@@ -45,12 +45,7 @@ def main() -> int:
 
     try:
         settings = get_settings()
-        storage = LocalStorageBackend(
-            input_dir=settings.input_dir,
-            output_dir=settings.output_dir,
-            failed_dir=settings.failed_dir,
-            reports_dir=settings.logs_dir,
-        )
+        storage = build_storage_backend(settings)
         client = AzureDocumentIntelligenceClient(settings)
         report = run_pipeline(settings=settings, storage=storage, client=client, logger=logger)
     except Exception:

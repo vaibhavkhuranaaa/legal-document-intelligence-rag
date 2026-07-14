@@ -7,10 +7,10 @@ import sys
 
 from legal_rag.ingestion.logging_config import configure_logging, get_logger
 from legal_rag.rag.azure_openai import AzureOpenAIClient
+from legal_rag.rag.backends import build_retrieval_backend
 from legal_rag.rag.chunking import chunk_document
 from legal_rag.rag.config import get_rag_settings
 from legal_rag.rag.corpus import load_documents
-from legal_rag.rag.store import ChromaHybridStore
 
 
 def main() -> int:
@@ -36,7 +36,7 @@ def main() -> int:
         print(f"Embedding {len(chunks)} chunks via Azure OpenAI ...")
         vectors = client.embed([c.embed_text for c in chunks])
 
-        store = ChromaHybridStore(str(settings.chroma_persist_dir))
+        store = build_retrieval_backend(settings)
         store.index(chunks, vectors)
         logger.info(
             "index built",

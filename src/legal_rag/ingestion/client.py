@@ -21,6 +21,7 @@ from azure.ai.documentintelligence import DocumentIntelligenceClient as _AzureSd
 from azure.ai.documentintelligence.models import AnalyzeResult
 from azure.core.credentials import AzureKeyCredential
 from azure.core.exceptions import HttpResponseError, ServiceRequestError, ServiceResponseError
+from azure.identity import DefaultAzureCredential
 
 from legal_rag.ingestion.config import IngestionSettings
 from legal_rag.ingestion.exceptions import AzureServiceError
@@ -35,11 +36,20 @@ class AzureDocumentIntelligenceClient:
     def __init__(
         self, settings: IngestionSettings, *, sdk_client: _AzureSdkClient | None = None
     ) -> None:
-        self._sdk_client = sdk_client or _AzureSdkClient(
-            endpoint=settings.azure_document_intelligence_endpoint,
-            credential=AzureKeyCredential(
+        if sdk_client is not None:
+            self._sdk_client = sdk_client
+            return
+        if settings.azure_document_intelligence_auth_mode == "managed_identity":
+            credential = DefaultAzureCredential()
+        else:
+            if settings.azure_document_intelligence_api_key is None:
+                raise RuntimeError("API-key authentication was selected without an API key")
+            credential = AzureKeyCredential(
                 settings.azure_document_intelligence_api_key.get_secret_value()
-            ),
+            )
+        self._sdk_client = _AzureSdkClient(
+            endpoint=settings.azure_document_intelligence_endpoint,
+            credential=credential,
             retry_total=settings.max_retries,
             retry_backoff_factor=settings.retry_backoff_seconds,
         )

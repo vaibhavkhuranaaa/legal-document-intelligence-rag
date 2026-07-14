@@ -8,8 +8,8 @@ import sys
 from legal_rag.ingestion.logging_config import configure_logging, get_logger
 from legal_rag.rag.answer import AnswerService
 from legal_rag.rag.azure_openai import AzureOpenAIClient
+from legal_rag.rag.backends import build_retrieval_backend
 from legal_rag.rag.config import get_rag_settings
-from legal_rag.rag.store import ChromaHybridStore
 
 
 def main() -> int:
@@ -24,7 +24,7 @@ def main() -> int:
     try:
         settings = get_rag_settings()
         client = AzureOpenAIClient(settings)
-        store = ChromaHybridStore(str(settings.chroma_persist_dir))
+        store = build_retrieval_backend(settings)
         service = AnswerService(client, store)
 
         answer = service.ask(question, k=settings.retrieval_top_k)

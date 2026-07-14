@@ -9,8 +9,8 @@ import streamlit as st
 
 from legal_rag.rag.answer import AnswerService
 from legal_rag.rag.azure_openai import AzureOpenAIClient
+from legal_rag.rag.backends import build_retrieval_backend
 from legal_rag.rag.config import get_rag_settings
-from legal_rag.rag.store import ChromaHybridStore
 
 st.set_page_config(page_title="Legal Document Intelligence", page_icon="⚖️", layout="wide")
 
@@ -26,7 +26,7 @@ _EXAMPLE_QUESTIONS = [
 def _build_service() -> tuple[AnswerService, int]:
     settings = get_rag_settings()
     client = AzureOpenAIClient(settings)
-    store = ChromaHybridStore(str(settings.chroma_persist_dir))
+    store = build_retrieval_backend(settings)
     return AnswerService(client, store), store.count()
 
 
@@ -70,6 +70,13 @@ def main() -> None:
     _render_sidebar(chunk_count)
 
     st.title("Ask the corpus")
+
+    if not chunk_count:
+        st.warning(
+            "No published corpus index is available yet. An operator must build and publish "
+            "the index before this app can answer questions."
+        )
+        st.stop()
 
     example = st.selectbox(
         "Try an example question",
