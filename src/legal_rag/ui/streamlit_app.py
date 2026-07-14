@@ -60,6 +60,19 @@ def _render_sidebar(chunk_count: int) -> None:
     st.sidebar.caption("Public documents only. Informational output — not legal advice.")
 
 
+def _render_answer(answer) -> None:
+    status = "Grounded answer" if answer.grounded else "Evidence incomplete"
+    with st.container(border=True):
+        st.subheader(status, anchor=False)
+        st.markdown(answer.text)
+    if answer.citations:
+        st.subheader("Evidence", anchor=False)
+        for citation in answer.citations:
+            with st.container(border=True):
+                st.markdown(f"**[{citation.marker}] {citation.display}**")
+                st.caption(citation.snippet)
+
+
 def main() -> None:
     try:
         service, chunk_count = _build_service()
@@ -72,8 +85,13 @@ def main() -> None:
 
     _render_sidebar(chunk_count)
 
-    st.title("Ask the corpus")
-    st.caption("Answers cite the exact case, section, and page used as evidence.")
+    st.title("Research the legal record")
+    st.caption(
+        "Ask about the corpus. Every supported answer resolves to a case, section, and page."
+    )
+    metric_one, metric_two = st.columns(2)
+    metric_one.metric("Indexed passages", chunk_count)
+    metric_two.metric("Source opinions", len(_load_corpus()))
 
     if not chunk_count:
         st.warning(
@@ -103,21 +121,7 @@ def main() -> None:
         with st.spinner("Retrieving evidence and generating a grounded answer…"):
             answer = service.ask(question.strip())
 
-        if answer.grounded:
-            st.success("Grounded answer — every claim below cites retrieved passages.")
-        else:
-            st.warning(
-                "The model could not fully ground this answer in the corpus. Treat it with caution."
-            )
-        st.markdown(answer.text)
-
-        if answer.citations:
-            st.divider()
-            st.subheader("Sources")
-            for citation in answer.citations:
-                with st.expander(f"[{citation.marker}] {citation.display}"):
-                    st.markdown(f"> {citation.snippet}")
-                    st.caption(f"chunk `{citation.chunk_id}`")
+        _render_answer(answer)
 
 
 main()
