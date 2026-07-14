@@ -1,8 +1,8 @@
 # Deployment Runbook
 
-This runbook records the production deployment contract. It does not claim that
-the Azure production backends exist yet; follow the phase status in
-[`roadmap.md`](./roadmap.md).
+This runbook records the production deployment contract. The Azure adapter code
+and core data-plane resources exist; follow the current blocked/unblocked state
+in [`roadmap.md`](./roadmap.md).
 
 ## Runtime contract
 
@@ -40,7 +40,7 @@ not add secrets to this repository or to `startup.txt`.
 
 `RETRIEVAL_BACKEND=azure_ai_search` and `STORAGE_BACKEND=azure_blob` select the
 production adapters. Their Azure resources and RBAC assignments are provisioned
-in the next deployment phase; retain `chroma` and `local` for development.
+in the production resource group; retain `chroma` and `local` for development.
 
 The Azure AI Search index must expose these fields: `chunk_id` (key), document
 and citation metadata, `text`/`embed_text` (searchable), `embedding` (vector),

@@ -12,7 +12,11 @@ from legal_rag.rag.azure_openai import AzureOpenAIClient
 from legal_rag.rag.backends import build_retrieval_backend
 from legal_rag.rag.config import get_rag_settings
 
-st.set_page_config(page_title="Legal Document Intelligence", page_icon="⚖️", layout="wide")
+st.set_page_config(
+    page_title="Legal document intelligence",
+    page_icon=":material/gavel:",
+    layout="wide",
+)
 
 _EXAMPLE_QUESTIONS = [
     "What did the Delaware Supreme Court hold about deal price in the Dell appraisal?",
@@ -40,20 +44,19 @@ def _load_corpus() -> list[dict]:
 
 
 def _render_sidebar(chunk_count: int) -> None:
-    st.sidebar.title("⚖️ Legal Document Intelligence")
+    st.sidebar.title(":material/gavel: Legal document intelligence")
     st.sidebar.caption(
         "Retrieval-augmented question answering over public Delaware M&A "
         "litigation, built on Azure Document Intelligence and Azure OpenAI. "
         "Every answer is grounded in retrieved passages with real citations."
     )
-    st.sidebar.divider()
     st.sidebar.subheader("Corpus")
     for doc in _load_corpus():
         name = doc.get("display_name", doc.get("case_name", "?"))
         st.sidebar.markdown(f"**{name}**")
         st.sidebar.caption(f"{doc.get('court', '')} · {doc.get('docket_number', '')}")
-    st.sidebar.divider()
-    st.sidebar.caption(f"{chunk_count} indexed chunks · hybrid retrieval (vector + BM25)")
+    st.sidebar.badge("Grounded answers", icon=":material/verified:", color="green")
+    st.sidebar.caption(f"{chunk_count} indexed chunks · hybrid retrieval")
     st.sidebar.caption("Public documents only. Informational output — not legal advice.")
 
 
@@ -70,6 +73,7 @@ def main() -> None:
     _render_sidebar(chunk_count)
 
     st.title("Ask the corpus")
+    st.caption("Answers cite the exact case, section, and page used as evidence.")
 
     if not chunk_count:
         st.warning(
@@ -78,14 +82,24 @@ def main() -> None:
         )
         st.stop()
 
-    example = st.selectbox(
-        "Try an example question",
-        ["(choose an example or type your own below)", *_EXAMPLE_QUESTIONS],
+    example = st.pills(
+        "Example questions",
+        _EXAMPLE_QUESTIONS,
+        key="example_question",
+        selection_mode="single",
     )
-    default = example if example in _EXAMPLE_QUESTIONS else ""
-    question = st.text_area("Your question", value=default, height=80)
+    with st.form("question_form"):
+        question = st.text_area(
+            "Your question",
+            value=example or "",
+            height=100,
+            placeholder="Ask a question about the Delaware M&A litigation corpus.",
+        )
+        submitted = st.form_submit_button(
+            "Ask the corpus", type="primary", icon=":material/search:"
+        )
 
-    if st.button("Ask", type="primary") and question.strip():
+    if submitted and question.strip():
         with st.spinner("Retrieving evidence and generating a grounded answer…"):
             answer = service.ask(question.strip())
 

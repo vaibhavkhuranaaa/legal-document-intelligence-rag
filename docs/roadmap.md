@@ -46,7 +46,7 @@ Status: **Complete locally; deployment is a separate phase**
 ## Phase 3 — Production Deployment
 
 Status: **In progress — deployment readiness and Azure adapter layer complete;
-cloud provisioning pending**
+core data-plane resources provisioned; App Service blocked on B1 quota**
 
 - App Service runtime for the Streamlit demo.
 - Managed Identity / `DefaultAzureCredential` in place of production API keys.
@@ -56,8 +56,9 @@ cloud provisioning pending**
 - A separate ingestion/indexing operation so the corpus can grow without
   redeploying the public app.
 
-Requires an Azure Pay-As-You-Go subscription before cloud resources are
-provisioned.
+The production resource group, managed identity, Storage account/private Blob
+container, and Basic Azure AI Search service are provisioned. The App Service
+plan cannot be created until Azure Support grants an East US B1 VM quota of one.
 
 ## Future phases
 

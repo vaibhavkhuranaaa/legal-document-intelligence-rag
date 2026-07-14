@@ -46,7 +46,7 @@ flagged the answer as ungrounded).
 - Real Azure services end-to-end (Document Intelligence, Azure OpenAI), not
   mocked — every capability claimed has been verified with a live API call.
 - Production engineering discipline: vendor SDK isolation, dependency
-  injection, typed errors, versioned schemas, structured logging, 131 tests,
+  injection, typed errors, versioned schemas, structured logging, 139 tests,
   CI, 12 ADRs documenting *why*, not just *what*.
 - Honest documentation: known limitations are written down, not hidden (e.g.
   the parser's residual heuristic limitations, the corpus/product-scope
@@ -65,8 +65,10 @@ flagged the answer as ungrounded).
 | Hybrid retrieval | ✅ Complete, validated | Chroma (vector) + BM25 (lexical), RRF-fused |
 | Grounded answering | ✅ Complete, validated live | Correct, well-cited answers on real legal questions; refusal path confirmed working |
 | Streamlit demo UI | ✅ Complete, verified serving | `uv run streamlit run src/legal_rag/ui/streamlit_app.py` |
-| Tests / CI | ✅ 131 passing, lint clean | `uv run pytest`, `uv run ruff check .` |
-| Deployment (App Service, Managed Identity, AI Search) | ❌ Not started | Blocked on Azure subscription upgrade (see §7) |
+| Tests / CI | ✅ 139 passing, lint clean | `uv run pytest`, `uv run ruff check .` |
+| Production adapters | ✅ Implemented, unit-tested | Managed identity, Blob Storage, and Azure AI Search adapters |
+| Deployment infrastructure | 🟡 Partially provisioned | Production resource group, identity, Storage, Blob container, and AI Search are live |
+| App Service public host | 🔴 Blocked | East US B1 App Service quota is currently 0; Azure Support request required |
 | Parser v2 (outline state machine) | ❌ Not started | Current heading-style registry works but has known residual limitations (§6) |
 | Evaluation harness (gold QA set) | ❌ Not started | No formal metrics yet — only manually-verified live examples |
 
@@ -128,13 +130,12 @@ uv run ruff check .                                        # lint
    running real questions and manually checking the answers/citations
    against the source PDFs — solid for a demo, not a substitute for a gold
    QA set with hit-rate/citation-accuracy metrics.
-4. **No production authentication.** Currently `.env` + API keys by
-   deliberate interim decision ("get it working before enterprise auth").
-   Migration to `DefaultAzureCredential` + Managed Identity is scoped for
-   the deployment milestone, not yet started.
-5. **Azure subscription is Free Trial with a spending limit.** Fine for
-   demo-scale usage; blocks the deployment milestone (App Service + AI
-   Search ≈ $100/mo) until upgraded to Pay-As-You-Go.
+4. **Public hosting is quota-blocked.** Azure App Service B1 in East US has a
+   current quota of zero. The provider is registered and the quota request was
+   rejected automatically; Azure Support must approve a B1 VM limit of one.
+5. **Production index/data release is pending.** The Blob and AI Search
+   services exist, but the AI Search index and production corpus release have
+   not yet been created.
 
 ## 7. How To Improve — Prioritized Roadmap
 
@@ -161,11 +162,10 @@ highest-value first:
    not just litigation about mergers. Requires an HTML→structured-content
    path (two designed options in ADR-0011: convert-to-PDF vs. native HTML
    parser feeding the existing `RawDocument` model).
-5. **Deploy to Azure** — Pay-As-You-Go upgrade, then App Service +
-   Managed Identity + Azure AI Search as the production `RetrievalBackend`
-   implementation (interface already in place — `store.py`), Application
-   Insights via the logging seam that's already built for it, OIDC-based
-   CI/CD. Turns "I can run this locally" into "here's a public URL."
+5. **Finish Azure deployment** — obtain the B1 quota, create App Service,
+   provision the Search index, publish the corpus, then add Application
+   Insights and OIDC-based CI/CD. Turns "I can run this locally" into
+   "here's a public URL."
 6. **Smaller, opportunistic items:** raise the reasoning-token budget
    awareness in prompts (gpt-5-mini spends hidden tokens — observed 64 for
    a one-word reply); add `pytest-cov` + `mypy` (deferred by ADR-0003 until
@@ -196,7 +196,8 @@ don't undo them while improving things:
 |---|---|
 | `docs/PROJECT_CONTEXT.md` | **This file** — start here in a new session |
 | `docs/product.md` | Product vision, target users, use cases, non-goals |
-| `docs/roadmap.md` | Phase-by-phase status (currently: Phase 2, demo shipped) |
+| `docs/roadmap.md` | Phase-by-phase status (currently: Phase 3 deployment) |
+| `docs/deployment.md` | Deployment runtime, data-release, and verification runbook |
 | `docs/decisions.md` | All 12 ADRs — the *why* behind every major choice |
 | `docs/PHASE1_SUMMARY.md` | Deep-dive on the ingestion pipeline's architecture |
 | `docs/ARCHITECTURE_REVIEW.md` | Full CTO-level review: scores, findings, target architecture, prioritized roadmap |
@@ -206,9 +207,9 @@ don't undo them while improving things:
 ## 10. Verification
 
 This file's claims were checked against live state on the date of writing:
-`git log` (6 most recent commits: ingestion hardening, RAG stack, UI, docs),
-`uv run pytest` (131 passed), `az cognitiveservices account list` (both
-Azure resources confirmed present with the stated SKUs/deployments), `gh repo
-view` (visibility confirmed private). If picking this up much later, re-run
-these checks rather than trusting this table blindly — it is a snapshot, not
-a live view.
+`git log`, `uv run pytest` (139 passed), and `uv run ruff check .`. Azure CLI
+confirmed the existing Document Intelligence/OpenAI resources plus the new
+`rg-legal-rag-prod` resource group, managed identity, private Blob container,
+and Basic AI Search service. App Service hosting remains blocked on an Azure
+Support quota increase. Re-run these checks rather than trusting this table
+blindly — it is a snapshot, not a live view.
