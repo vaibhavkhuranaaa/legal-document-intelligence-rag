@@ -12,8 +12,6 @@ is why the lexical leg is not optional.
 import re
 from abc import ABC, abstractmethod
 
-import chromadb
-
 from legal_rag.rag.models import Chunk, ScoredChunk
 
 _COLLECTION_NAME = "legal_rag_chunks"
@@ -54,6 +52,11 @@ class ChromaHybridStore(RetrievalBackend):
     """Local dev implementation: persistent Chroma + in-memory BM25."""
 
     def __init__(self, persist_dir: str) -> None:
+        # Chroma is a local-development dependency. Import it only when the
+        # local backend is selected so production Azure AI Search requests do
+        # not require Chroma's SQLite runtime.
+        import chromadb
+
         self._client = chromadb.PersistentClient(path=persist_dir)
         self._collection = self._client.get_or_create_collection(
             _COLLECTION_NAME, metadata={"hnsw:space": "cosine"}
