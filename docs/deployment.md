@@ -38,7 +38,7 @@ Local development uses `.env`, API keys, filesystem-backed processed records,
 and Chroma. None of those local persistence assumptions are valid for App
 Service.
 
-The production app settings will be introduced with the corresponding Azure
+The production App Service uses these settings with the corresponding Azure
 implementations:
 
 - user-assigned managed identity client ID;
@@ -54,11 +54,17 @@ not add secrets to this repository or to `startup.txt`.
 production adapters. Their Azure resources and RBAC assignments are provisioned
 in the production resource group; retain `chroma` and `local` for development.
 
-The Azure AI Search index must expose these fields: `chunk_id` (key), document
+The production index is named `legal-rag-chunks`. It exposes these fields: `chunk_id` (key), document
 and citation metadata, `text`/`embed_text` (searchable), `embedding` (vector),
 and the collection fields `section_path` and `element_ids`. Index provisioning
 is intentionally separate from application startup, so a web request cannot
 mutate search infrastructure.
+
+Current production resources are in `rg-legal-rag-prod` (East US): the
+`asp-legal-rag-prod` Linux B1 plan, `app-legal-rag-prod-278f1d` web app,
+`id-legal-rag-prod` user-assigned identity, `stlegalragprod278f1d` private
+storage account, and `srch-legal-rag-prod-278f1d` Search service. The Search
+index contains the currently approved 390 public chunks.
 
 ## Corpus release procedure
 

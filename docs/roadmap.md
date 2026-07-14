@@ -45,8 +45,9 @@ Status: **Complete locally; deployment is a separate phase**
 
 ## Phase 3 — Production Deployment
 
-Status: **In progress — deployment readiness and Azure adapter layer complete;
-core data-plane resources provisioned; App Service blocked on B1 quota**
+Status: **In progress — deployment readiness, adapters, and production data
+plane complete; App Service resource provisioned; corrected source deployment
+awaits release from a stale OneDeploy job**
 
 - App Service runtime for the Streamlit demo.
 - Managed Identity / `DefaultAzureCredential` in place of production API keys.
@@ -57,8 +58,12 @@ core data-plane resources provisioned; App Service blocked on B1 quota**
   redeploying the public app.
 
 The production resource group, managed identity, Storage account/private Blob
-container, and Basic Azure AI Search service are provisioned. The App Service
-plan cannot be created until Azure Support grants an East US B1 VM quota of one.
+container, Basic Azure AI Search service, `legal-rag-chunks` index, and its
+390-chunk public corpus are provisioned. East US B1 quota was granted and the
+Linux App Service plan/web app exist. The first source deployment was submitted
+before the App Service dependency handoff existed, and its OneDeploy operation
+is currently stale; `requirements.txt` is now generated from `uv.lock` and the
+corrected revision is ready to deploy when that Azure deployment lock clears.
 
 ## Future phases
 
