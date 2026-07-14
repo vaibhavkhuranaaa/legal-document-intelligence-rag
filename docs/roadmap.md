@@ -30,9 +30,9 @@ Status: **Complete**
   heuristic enhanced (heading-style registry with deterministic ambiguity
   warnings) and validated against live extractions.
 
-## Phase 2 — Demo RAG Stack (current)
+## Phase 2 — Demo RAG Stack
 
-Status: **Working demo shipped; deployment pending**
+Status: **Complete locally; deployment is a separate phase**
 
 - Full retrieval-augmented answering loop, validated end-to-end against the
   real corpus with real Azure services (see ADR-0012):
@@ -43,14 +43,28 @@ Status: **Working demo shipped; deployment pending**
 - A full-platform architecture review (`docs/ARCHITECTURE_REVIEW.md`) defines
   the target production architecture and the remaining milestones below.
 
+## Phase 3 — Production Deployment
+
+Status: **In progress — deployment readiness and Azure adapter layer complete;
+cloud provisioning pending**
+
+- App Service runtime for the Streamlit demo.
+- Managed Identity / `DefaultAzureCredential` in place of production API keys.
+- Blob-backed storage and Azure AI Search implementations behind the existing
+  `StorageBackend` and `RetrievalBackend` interfaces.
+- Application Insights and an OIDC-based GitHub Actions deployment workflow.
+- A separate ingestion/indexing operation so the corpus can grow without
+  redeploying the public app.
+
+Requires an Azure Pay-As-You-Go subscription before cloud resources are
+provisioned.
+
 ## Future phases
 
 Per the architecture review's priority roadmap: parser v2 (outline state
-machine), Azure DI span offsets for exact reading order, a gold-QA evaluation
-harness as a CI gate, then Azure deployment (App Service + Managed Identity +
-Azure AI Search as the production `RetrievalBackend`; requires subscription
-upgrade from Free Trial). Each will be scoped in detail immediately before
-implementation.
+machine), Azure DI span offsets for exact reading order, and a gold-QA
+evaluation harness as a CI gate. Each will be scoped in detail immediately
+before implementation.
 
 ### Approved future enhancement: Native SEC EDGAR HTML Ingestion
 

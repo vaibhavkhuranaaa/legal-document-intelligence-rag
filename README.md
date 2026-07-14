@@ -96,6 +96,13 @@ uv run ruff format .   # format
 Every push and PR to `main` runs lint + tests via GitHub Actions
 ([.github/workflows/ci.yml](.github/workflows/ci.yml)).
 
+## Deployment
+
+The current application is a verified local demo. The Azure production
+deployment is phased separately; see [docs/deployment.md](docs/deployment.md)
+for the App Service runtime contract, data-release workflow, and release
+checks.
+
 ## Project structure
 
 ```

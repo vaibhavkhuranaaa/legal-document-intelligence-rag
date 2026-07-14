@@ -1,5 +1,11 @@
 # SUMMARY_FOR_CHATGPT.md
 
+> **Historical note:** the review request below was written before the RAG
+> stack and Streamlit UI were implemented. It is retained as historical
+> context, not a statement of the current repository state. For the current
+> handoff, start with `docs/PROJECT_CONTEXT.md`; for the implemented and
+> planned architecture, read `docs/architecture.md`.
+
 **Purpose:** Independent architecture critique requested before implementation. Written by the reviewing architect for a second Principal AI Architect. Full review: `docs/ARCHITECTURE_REVIEW.md`. All factual claims are grounded in the repository and live Azure validation runs, not projections.
 
 ## 1. System as it exists
