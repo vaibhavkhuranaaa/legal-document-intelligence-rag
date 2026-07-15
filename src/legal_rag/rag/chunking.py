@@ -50,6 +50,7 @@ class _ChunkBuilder:
         self._texts: list[str] = []
         self._element_ids: list[str] = []
         self._pages: list[int] = []
+        self._source_anchors: list[str] = []
 
     def _flush(self) -> None:
         if not self._texts:
@@ -63,15 +64,24 @@ class _ChunkBuilder:
                 section_path=list(self._section_path),
                 page_start=min(self._pages),
                 page_end=max(self._pages),
+                source_anchor=next(iter(self._source_anchors), None),
                 element_ids=list(self._element_ids),
                 chunk_type="text",
                 text=text,
                 embed_text=_embed_text(self._title, self._section_path, text),
             )
         )
-        self._texts, self._element_ids, self._pages = [], [], []
+        self._texts, self._element_ids, self._pages, self._source_anchors = [], [], [], []
 
-    def add_paragraph(self, *, text: str, element_id: str, page: int, path: list[str]) -> None:
+    def add_paragraph(
+        self,
+        *,
+        text: str,
+        element_id: str,
+        page: int,
+        path: list[str],
+        source_anchor: str | None,
+    ) -> None:
         if _is_footnote_marker(text):
             return
         if path != self._section_path:
@@ -83,6 +93,8 @@ class _ChunkBuilder:
         self._texts.append(text)
         self._element_ids.append(element_id)
         self._pages.append(page)
+        if source_anchor:
+            self._source_anchors.append(source_anchor)
 
     def add_table(self, table: TableElement) -> None:
         self._flush()
@@ -98,6 +110,7 @@ class _ChunkBuilder:
                 section_path=list(table.section_path),
                 page_start=table.page_number,
                 page_end=table.page_number,
+                source_anchor=table.source_anchor,
                 element_ids=[table.element_id],
                 chunk_type="table",
                 text=text,
@@ -120,6 +133,7 @@ def chunk_document(record: DocumentRecord, *, title: str, max_chars: int = 1800)
                 element_id=element.element_id,
                 page=element.page_number,
                 path=element.section_path,
+                source_anchor=element.source_anchor,
             )
         elif element.type == "table":
             builder.add_table(element)

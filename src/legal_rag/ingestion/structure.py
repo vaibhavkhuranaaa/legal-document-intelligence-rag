@@ -216,6 +216,7 @@ def _open_section(
     depth: int,
     page_number: int,
     styles: frozenset[str],
+    source_anchor: str | None,
 ) -> Section:
     while stack and stack[-1].depth >= depth:
         stack.pop()
@@ -231,6 +232,7 @@ def _open_section(
         level=depth,
         page_number=page_number,
         path=path,
+        source_anchor=source_anchor,
     )
     if parent:
         parent.children.append(section)
@@ -272,6 +274,7 @@ def build_structure(document: RawDocument) -> DocumentStructure:
                     depth=resolution.depth,
                     page_number=paragraph.page_number,
                     styles=resolution.styles,
+                    source_anchor=paragraph.source_anchor,
                 )
                 section.content.append(element_id)
                 elements.append(
@@ -280,6 +283,7 @@ def build_structure(document: RawDocument) -> DocumentStructure:
                         page_number=paragraph.page_number,
                         section_path=section.path,
                         bounding_regions=paragraph.bounding_regions,
+                        source_anchor=paragraph.source_anchor,
                         text=paragraph.text,
                     )
                 )
@@ -292,6 +296,7 @@ def build_structure(document: RawDocument) -> DocumentStructure:
                         page_number=paragraph.page_number,
                         section_path=section_path,
                         bounding_regions=paragraph.bounding_regions,
+                        source_anchor=stack[-1].section.source_anchor if stack else None,
                         text=paragraph.text,
                     )
                 )

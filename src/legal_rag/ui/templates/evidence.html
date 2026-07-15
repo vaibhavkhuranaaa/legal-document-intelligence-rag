@@ -14,7 +14,7 @@
     <p class="section-path">{{ match.citation.section_path|join(' › ') if match.citation.section_path else "Document body" }}</p>
     <blockquote>{{ match.result.chunk.text }}</blockquote>
     <p class="checksum">Source checksum: <code>{{ match.citation.source_checksum }}</code></p>
-    {% if match.citation.source_url %}<a href="{{ match.citation.source_url }}" target="_blank" rel="noopener noreferrer">Open original opinion at cited page ↗</a>{% endif %}
+    {% if match.citation.source_url %}<a href="{{ match.citation.source_url }}" target="_blank" rel="noopener noreferrer">{{ "Open official filing section" if match.citation.source_kind == "sec_html" else "Open original opinion at cited page" }} ↗</a>{% endif %}
   </article>
 {% endfor %}
 </div>

@@ -88,6 +88,8 @@ def create_app(
 
     @app.template_filter("pages")
     def format_pages(citation: Citation) -> str:
+        if citation.source_kind == "sec_html":
+            return citation.section_path[-1] if citation.section_path else "HTML filing section"
         return (
             f"p. {citation.page_start}"
             if citation.page_start == citation.page_end
@@ -156,10 +158,19 @@ def create_app(
 
     @app.get("/corpus")
     def corpus():
+        source_type = request.args.get("source_type", "")
+        company = request.args.get("company", "")
+        form_type = request.args.get("form", "")
         court = request.args.get("court", "")
         year = request.args.get("year", "")
         topic = request.args.get("topic", "")
         documents = workspace.registry.documents
+        if source_type:
+            documents = [document for document in documents if document.source_kind == source_type]
+        if company:
+            documents = [document for document in documents if document.company_name == company]
+        if form_type:
+            documents = [document for document in documents if document.form_type == form_type]
         if court:
             documents = [document for document in documents if document.court == court]
         if year:
@@ -169,6 +180,23 @@ def create_app(
         return render_template(
             "corpus.html",
             documents=documents,
+            source_types=sorted(
+                {document.source_kind for document in workspace.registry.documents}
+            ),
+            companies=sorted(
+                {
+                    document.company_name
+                    for document in workspace.registry.documents
+                    if document.company_name
+                }
+            ),
+            form_types=sorted(
+                {
+                    document.form_type
+                    for document in workspace.registry.documents
+                    if document.form_type
+                }
+            ),
             courts=sorted({document.court for document in workspace.registry.documents}),
             years=sorted(
                 {document.year for document in workspace.registry.documents}, reverse=True
@@ -177,6 +205,9 @@ def create_app(
             selected_court=court,
             selected_year=year,
             selected_topic=topic,
+            selected_source_type=source_type,
+            selected_company=company,
+            selected_form_type=form_type,
         )
 
     @app.get("/evaluation")

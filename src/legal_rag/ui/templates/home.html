@@ -3,9 +3,9 @@
 <section class="hero">
   <p class="eyebrow">Evidence-first legal research</p>
   <h1>Research the record. Verify every source.</h1>
-  <p class="lede">A production RAG workspace over public Delaware M&A opinions, designed to make evidence—not generated prose—the center of the review.</p>
+  <p class="lede">A production RAG workspace over public M&A primary sources, designed to make evidence—not generated prose—the center of the review.</p>
   <div class="metrics">
-    <div><strong>{{ source_count }}</strong><span>source opinions</span></div>
+    <div><strong>{{ source_count }}</strong><span>public sources</span></div>
     <div><strong>{{ chunk_count if chunk_count is not none else "—" }}</strong><span>indexed passages</span></div>
     <div><strong>HTTPS</strong><span>canonical court sources</span></div>
   </div>
@@ -33,7 +33,7 @@
       <p class="section-path">{{ citation.section_path|join(' › ') if citation.section_path else "Document body" }}</p>
       <p>{{ citation.snippet }}</p>
       <a href="{{ url_for('evidence', q=question) }}#evidence-{{ citation.marker }}">Inspect evidence match →</a>
-      {% if citation.source_url %}<br><a href="{{ citation.source_url }}" target="_blank" rel="noopener noreferrer">Open original opinion ↗</a>{% endif %}
+      {% if citation.source_url %}<br><a href="{{ citation.source_url }}" target="_blank" rel="noopener noreferrer">{{ "Open official filing section" if citation.source_kind == "sec_html" else "Open original opinion" }} ↗</a>{% endif %}
     </article>
     {% endfor %}
   </div>

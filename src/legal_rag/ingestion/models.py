@@ -45,6 +45,7 @@ class RawParagraph(BaseModel):
     text: str
     role: RawParagraphRole
     page_number: int
+    source_anchor: str | None = None
     bounding_regions: list[BoundingRegion] = Field(default_factory=list)
 
 
@@ -87,6 +88,8 @@ class SecMetadata(BaseModel):
     form_type: str | None = None
     filing_date: date | None = None
     company_name: str | None = None
+    exhibit_identity: str | None = None
+    canonical_url: str | None = None
 
 
 class SourceInfo(BaseModel):
@@ -125,6 +128,7 @@ class ElementBase(BaseModel):
     page_number: int
     section_path: list[str] = Field(default_factory=list)
     bounding_regions: list[BoundingRegion] = Field(default_factory=list)
+    source_anchor: str | None = None
 
 
 class ParagraphElement(ElementBase):
@@ -153,6 +157,7 @@ class Section(BaseModel):
     level: int
     page_number: int
     path: list[str]
+    source_anchor: str | None = None
     children: list[Section] = Field(default_factory=list)
     content: list[str] = Field(default_factory=list)
 

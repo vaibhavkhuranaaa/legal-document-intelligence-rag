@@ -6,14 +6,15 @@ separate.
 
 ## Current implemented system
 
-The application is a public corpus research system over Delaware M&A litigation.
+The application is a public corpus research system over Delaware M&A litigation
+and, after the SEC release gate is satisfied, public SEC merger filings.
 Production uses managed identity, Azure OpenAI, and Azure AI Search; local
 development retains API-key/Chroma support. The live public host serves the
 Flask/Gunicorn research workspace.
 
 ```text
-Public PDF corpus
-  -> Azure Document Intelligence (prebuilt-layout)
+Public court-PDF corpus -> Azure Document Intelligence (prebuilt-layout)
+Public SEC HTML corpus -> native HTML parser (no synthetic pages)
   -> Azure-SDK adapter
   -> outline parser and validation
   -> versioned DocumentRecord JSON
@@ -40,11 +41,11 @@ request never performs ingestion, embedding, or index mutation.
 
 ### Evidence provenance and evaluation
 
-- `data/dataset_manifest.json` is the source registry for every public opinion.
+- `data/dataset_manifest.json` is the source registry for every public source.
   `SourceRegistry` validates HTTPS canonical source URLs and checksum identity.
 - `AnswerService` resolves each cited document ID through that registry and
-  returns the canonical PDF page link, checksum, document, section, page range,
-  and excerpt together.
+  returns the canonical source link, checksum, document, section, and excerpt
+  together. Court PDFs retain page ranges; SEC HTML never makes a page claim.
 - The Flask Evidence explorer displays that provenance without trusting model-
   composed citations.
 - `data/evaluation/gold_qa_v2.json` contains the versioned 45-question gold

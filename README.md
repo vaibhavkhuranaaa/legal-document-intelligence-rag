@@ -1,8 +1,9 @@
 # Legal Document Intelligence RAG
 
 A production-grade **Legal Document Intelligence platform** built on Azure: real
-court documents go in as PDFs, and citation-backed answers come out — every claim
-grounded in a retrieved passage with the exact case, section, and page number.
+court opinions and SEC filings go in as primary sources, and citation-backed
+answers come out — every claim is grounded in a retrieved passage and its
+verifiable source location.
 
 > **[Open the live demo →](https://app-legal-rag-prod-278f1d.azurewebsites.net/)**
 
@@ -19,7 +20,9 @@ architecture decision records).
 
 ## What it does
 
-Ask a question about the corpus of Delaware M&A litigation:
+Ask a question about the curated corpus of Delaware M&A litigation. Native SEC
+merger-filing support is implemented but not yet published, pending its
+section-locator release gate.
 
 ```
 $ legal-rag-ask "Why did the plaintiff in Abraham v. Wirtz fail to get a quasi-appraisal remedy?"
@@ -51,8 +54,8 @@ versioned report and `legal-rag-evaluate` for the repeatable release check.
 ## Architecture
 
 ```
-PDF corpus (public Delaware M&A litigation)
-  → Azure Document Intelligence (layout extraction, S0)
+Court PDFs → Azure Document Intelligence (layout extraction, S0)
+SEC HTML → native parser (no fabricated page number)
   → vendor-neutral adapter (Azure SDK types never escape it)
   → legal-outline parser (heading-style registry + ambiguity warnings)
   → versioned DocumentRecord schema (section tree + flat cited elements)
@@ -60,7 +63,7 @@ PDF corpus (public Delaware M&A litigation)
   → Azure OpenAI embeddings (text-embedding-3-small)
   → hybrid retrieval: Chroma vector + BM25 lexical, RRF-fused
   → grounded generation (gpt-5-mini, citation-required prompting)
-  → public research workspace / CLI with resolved case–section–page citations
+  → public research workspace / CLI with resolved source citations
 ```
 
 Key engineering decisions are documented as ADRs in
@@ -100,7 +103,7 @@ uv run flask --app legal_rag.ui.flask_app:app run --port 8503
 ## Development
 
 ```bash
-uv run pytest          # 150 tests, no network calls, deterministic
+uv run pytest          # 154 tests, no network calls, deterministic
 uv run ruff check .    # lint
 uv run ruff format .   # format
 ```

@@ -94,15 +94,17 @@ machine), Azure DI span offsets for exact reading order, and corpus expansion.
 The gold-QA harness is now implemented as a release check; automated Azure
 execution can be added only after its release identity/credentials are scoped.
 
-### Approved future enhancement: Native SEC EDGAR HTML Ingestion
+## Phase 5B — Native SEC EDGAR merger-filing ingestion
 
-Status: **Approved, deferred** — not yet scheduled to a specific phase number
-(tentatively Phase 1.6 or a dedicated "Additional Document Sources" phase).
+Status: **In progress — parser and provenance foundation validated; publication gated**
 
-SEC EDGAR serves nearly all modern filings as HTML, not PDF; the current
-pipeline only ingests PDF/image formats. Full rationale, and two candidate
-implementation designs with their tradeoffs, are recorded in ADR-0011
-(`docs/decisions.md`). This work is intentionally deferred until Phase 1.5's
-PDF pipeline validation is complete and stable — introducing a second
-ingestion format mid-validation would confound the results. It will be
-picked up as its own dedicated milestone, not folded into Phase 1.5.
+- The native HTML parser, rate-limited explicit-URL SEC client, immutable
+  SEC filing metadata, and source-kind-aware citations are implemented and
+  covered by deterministic tests.
+- Six official EX-2.1 merger agreements were fetched once with a declared SEC
+  User-Agent solely to validate parsing. They are not registered, indexed, or
+  visible in production yet.
+- Release gate: the sampled official filings have no stable DOM `id`/`name`
+  fragment anchors. Phase 6 must preserve a truthful heading/span locator and
+  never append an unresolvable fragment to an official URL before this source
+  family can be published.

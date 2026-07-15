@@ -92,6 +92,14 @@ class AnswerService:
         c = scored.chunk
         snippet = c.text[:280] + ("…" if len(c.text) > 280 else "")
         source = self._source_registry.get(c.document_id) if self._source_registry else None
+        source_kind = source.source_kind if source else "court_pdf"
+        source_url = None
+        if source:
+            source_url = (
+                source.source_page_url(c.page_start)
+                if source.source_kind == "court_pdf"
+                else source.source_section_url(c.source_anchor)
+            )
         return Citation(
             marker=marker,
             document_title=c.document_title,
@@ -100,6 +108,9 @@ class AnswerService:
             page_end=c.page_end,
             chunk_id=c.chunk_id,
             snippet=snippet,
-            source_url=source.source_page_url(c.page_start) if source else None,
+            source_url=source_url,
             source_checksum=source.document_id if source else None,
+            source_kind=source_kind,
+            source_anchor=c.source_anchor,
+            accession_number=source.accession_number if source else None,
         )

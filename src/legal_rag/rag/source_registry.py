@@ -25,13 +25,38 @@ class CorpusDocument:
     year: int
     legal_topic: str
     source_url: str
+    source_kind: str = "court_pdf"
+    company_name: str | None = None
+    form_type: str | None = None
+    accession_number: str | None = None
+    filing_date: str | None = None
+    exhibit_identity: str | None = None
 
     def source_page_url(self, page: int) -> str:
         """Return a browser-supported best-effort PDF page fragment."""
+        if self.source_kind != "court_pdf":
+            raise ValueError("SEC HTML sources do not have stable PDF pages")
         if page < 1:
             raise ValueError("page must be positive")
         parts = urlsplit(self.source_url)
         return urlunsplit((parts.scheme, parts.netloc, parts.path, parts.query, f"page={page}"))
+
+    def source_section_url(self, anchor: str | None) -> str:
+        """Return the official source, retaining an existing HTML fragment when supplied."""
+        if self.source_kind == "court_pdf":
+            return self.source_page_url(1) if anchor is None else self.source_page_url(1)
+        if not anchor:
+            return self.source_url
+        parts = urlsplit(self.source_url)
+        return urlunsplit(
+            (parts.scheme, parts.netloc, parts.path, parts.query, anchor.removeprefix("#"))
+        )
+
+    @property
+    def source_link_label(self) -> str:
+        if self.source_kind == "court_pdf":
+            return "Open canonical court PDF"
+        return "Open official filing"
 
 
 class SourceRegistry:
@@ -91,6 +116,9 @@ def _parse_document(item: dict) -> CorpusDocument:
     parsed = urlsplit(source_url)
     if parsed.scheme != "https" or not parsed.netloc:
         raise ValueError(f"source_url must be an absolute HTTPS URL: {source_url}")
+    source_kind = str(item.get("source_kind", "court_pdf"))
+    if source_kind not in {"court_pdf", "sec_html"}:
+        raise ValueError(f"unsupported source_kind: {source_kind}")
     required = (
         "local_filename",
         "display_name",
@@ -101,6 +129,18 @@ def _parse_document(item: dict) -> CorpusDocument:
         "legal_topic",
     )
     missing = [key for key in required if not item.get(key)]
+    if source_kind == "sec_html":
+        missing.extend(
+            key
+            for key in (
+                "company_name",
+                "form_type",
+                "accession_number",
+                "filing_date",
+                "exhibit_identity",
+            )
+            if not item.get(key)
+        )
     if missing:
         raise ValueError(f"manifest record is missing {', '.join(missing)}")
     return CorpusDocument(
@@ -114,6 +154,12 @@ def _parse_document(item: dict) -> CorpusDocument:
         year=int(item["year"]),
         legal_topic=str(item["legal_topic"]),
         source_url=source_url,
+        source_kind=source_kind,
+        company_name=str(item["company_name"]) if item.get("company_name") else None,
+        form_type=str(item["form_type"]) if item.get("form_type") else None,
+        accession_number=str(item["accession_number"]) if item.get("accession_number") else None,
+        filing_date=str(item["filing_date"]) if item.get("filing_date") else None,
+        exhibit_identity=str(item["exhibit_identity"]) if item.get("exhibit_identity") else None,
     )
 
 
