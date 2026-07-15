@@ -46,7 +46,7 @@ flagged the answer as ungrounded).
 - Real Azure services end-to-end (Document Intelligence, Azure OpenAI), not
   mocked — every capability claimed has been verified with a live API call.
 - Production engineering discipline: vendor SDK isolation, dependency
-  injection, typed errors, versioned schemas, structured logging, 139 tests,
+  injection, typed errors, versioned schemas, structured logging, 147 tests,
   CI, 12 ADRs documenting *why*, not just *what*.
 - Honest documentation: known limitations are written down, not hidden (e.g.
   the parser's residual heuristic limitations, the corpus/product-scope
@@ -64,13 +64,14 @@ flagged the answer as ungrounded).
 | Chunking + embeddings | ✅ Complete, validated | 390 chunks indexed from the real corpus |
 | Hybrid retrieval | ✅ Complete, validated | Chroma (vector) + BM25 (lexical), RRF-fused |
 | Grounded answering | ✅ Complete, validated live | Correct, well-cited answers on real legal questions; refusal path confirmed working |
-| Streamlit demo UI | ✅ Complete, verified serving | `uv run streamlit run src/legal_rag/ui/streamlit_app.py` |
-| Tests / CI | ✅ 139 passing, lint clean | `uv run pytest`, `uv run ruff check .` |
+| Streamlit public runtime | ✅ Live | Current Azure App Service runtime; retained during Flask review |
+| Flask research workspace | 🟡 Local release candidate verified | Research, Evidence, Corpus, Evaluation, health routes; cutover pending |
+| Tests / CI | ✅ 147 passing, lint clean | `uv run pytest`, `uv run ruff check .` |
 | Production adapters | ✅ Implemented, unit-tested | Managed identity, Blob Storage, and Azure AI Search adapters |
 | Deployment infrastructure | 🟡 Nearly complete | Production resource group, identity, Storage, Blob container, AI Search, `legal-rag-chunks`, and 390 public chunks are live |
-| App Service public host | 🟡 Resource provisioned; release recovery pending | East US B1 quota was granted; the first OneDeploy job is stale after a pre-`requirements.txt` source deployment |
+| App Service public host | ✅ Live | Streamlit at the repository's public demo URL; Flask cutover not yet performed |
 | Parser v2 (outline state machine) | ❌ Not started | Current heading-style registry works but has known residual limitations (§6) |
-| Evaluation harness (gold QA set) | ❌ Not started | No formal metrics yet — only manually-verified live examples |
+| Evaluation harness | 🟡 Implemented, baseline pending | 25-question versioned benchmark and evaluator; no scores published until a recorded Azure run |
 
 ## 4. Architecture At A Glance
 
@@ -85,7 +86,8 @@ PDF corpus (public Delaware M&A litigation, 4 docs / 305 pages)
   → Azure OpenAI embeddings (text-embedding-3-small)
   → hybrid retrieval: Chroma (dense) + BM25 (lexical), RRF-fused
   → grounded generation (gpt-5-mini; citation-required prompting)
-  → Streamlit UI / legal-rag-ask CLI (citations resolved to case/section/page)
+  → Streamlit public runtime / Flask release candidate / legal-rag-ask CLI
+    (citations resolve to case/section/page/canonical source URL/checksum)
 ```
 
 Code layout:
@@ -94,8 +96,8 @@ src/legal_rag/
 ├── ingestion/   # discovery → normalization → Azure DI client + adapter →
 │                # outline parser → mapper → validation → storage → manifests
 ├── rag/         # chunking, embeddings, hybrid store, answer service, CLIs
-└── ui/          # Streamlit demo
-tests/           # 139 tests, no network calls, deterministic (fakes for Azure)
+└── ui/          # Flask workspace + temporary Streamlit runtime
+tests/           # 147 tests, no network calls, deterministic (fakes for Azure)
 docs/            # this file, ADRs, roadmap, architecture review, product spec
 data/            # dataset_manifest.json (committed); raw/processed/failed (gitignored)
 ```
@@ -108,8 +110,8 @@ uv sync                                                   # env + deps
 uv run legal-rag-ingest                                   # PDFs -> structured JSON
 uv run legal-rag-index                                    # chunk + embed + index
 uv run legal-rag-ask "your question"                      # CLI Q&A
-uv run streamlit run src/legal_rag/ui/streamlit_app.py     # web demo
-uv run pytest                                              # 139 tests
+uv run flask --app legal_rag.ui.flask_app:app run --port 8503
+uv run pytest                                              # 147 tests
 uv run ruff check .                                        # lint
 ```
 
@@ -126,15 +128,12 @@ uv run ruff check .                                        # lint
    pipeline); validated corpus is Delaware court opinions instead. Product
    scope now explicitly covers both; EDGAR ingestion is an approved,
    deferred future milestone (ADR-0011).
-3. **No formal evaluation harness.** Correctness has been verified by
-   running real questions and manually checking the answers/citations
-   against the source PDFs — solid for a demo, not a substitute for a gold
-   QA set with hit-rate/citation-accuracy metrics.
-4. **Public hosting release is awaiting Azure deployment recovery.** The East
-   US B1 quota was granted and App Service exists, but its first OneDeploy job
-   remains stale. The corrected release includes a generated `requirements.txt`
-   because App Service needs it to create the Python environment from the
-   `uv`-managed project.
+3. **Evaluation baseline is intentionally pending.** The 25-question gold-QA
+   corpus and deterministic evaluator are committed, but scores must be
+   generated against the candidate Azure index before they are displayed.
+4. **Flask is not live yet.** The existing Streamlit host remains public until
+   the Flask deployment, health check, evidence-link check, benchmark, and
+   smoke test are approved.
 5. **Production corpus is released.** `legal-rag-chunks` contains the approved
    390 public chunks; future releases still need the operator workflow below.
 
@@ -143,12 +142,9 @@ uv run ruff check .                                        # lint
 Full detail and reasoning: `docs/ARCHITECTURE_REVIEW.md` §14. Summary,
 highest-value first:
 
-1. **Gold QA evaluation harness** (before anything else) — ~25 questions
-   with known-correct answers/citations against the real corpus, scored for
-   retrieval hit-rate and citation accuracy, run in CI. Turns "it worked
-   when I tried it" into a defensible, repeatable metric — the single
-   highest-leverage next step for both product quality and portfolio
-   credibility.
+1. **Flask cutover and actual benchmark run.** Review the candidate deployment,
+   run the source check and gold-QA evaluator against Azure, then replace the
+   App Service startup command without changing the public URL.
 2. **Parser v2: outline state machine.** Replaces style-name matching with
    per-branch enumerator-value tracking and successor prediction. Fixes both
    known residual limitations (§6.1). Pure-logic change, no schema impact,
@@ -163,10 +159,9 @@ highest-value first:
    not just litigation about mergers. Requires an HTML→structured-content
    path (two designed options in ADR-0011: convert-to-PDF vs. native HTML
    parser feeding the existing `RawDocument` model).
-5. **Finish Azure deployment** — release the stale OneDeploy operation,
-   deploy the corrected source package, smoke-test the public URL, then add
-   Application Insights and OIDC-based CI/CD. Turns "I can run this locally"
-   into "here's a public URL."
+5. **Secure user-upload eDiscovery workflow.** Requires authenticated
+   workspaces, private Blob storage, malware scanning, asynchronous ingestion,
+   user-scoped retrieval, quotas, retention/deletion, and audit logging.
 6. **Smaller, opportunistic items:** raise the reasoning-token budget
    awareness in prompts (gpt-5-mini spends hidden tokens — observed 64 for
    a one-word reply); add `pytest-cov` + `mypy` (deferred by ADR-0003 until
@@ -208,11 +203,9 @@ don't undo them while improving things:
 ## 10. Verification
 
 This file's claims were checked against live state on the date of writing:
-`git log`, `uv run pytest` (139 passed), and `uv run ruff check .`. Azure CLI
-confirmed the existing Document Intelligence/OpenAI resources plus the new
-`rg-legal-rag-prod` resource group, managed identity, private Blob container,
-Basic AI Search service, production Search index, and 390 published chunks.
-The quota was granted and App Service resources were created; the next
-operator action is deployment-lock recovery and a redeploy of the corrected
-package. Re-run these checks rather than trusting this table blindly — it is a
-snapshot, not a live view.
+`git log`, `uv run pytest` (147 passed), `uv run ruff check .`, and a local
+Flask browser smoke test. Azure production has the public Streamlit App Service,
+managed identity, private Blob container, Basic AI Search service, production
+Search index, and 390 published chunks. The next operator action is a deliberate
+Flask cutover, not recovery of the original deployment. Re-run these checks
+rather than trusting this table blindly — it is a snapshot, not a live view.

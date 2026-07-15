@@ -377,3 +377,25 @@ Chroma+BM25); Azure AI Search becomes a second implementation at the
 deployment milestone with no changes to chunking or answering. The
 `Chunk` schema is versioned separately from `DocumentRecord`, which stays
 frozen.
+
+---
+
+## ADR-0013: Evidence provenance is resolved from the curated source registry
+
+**Context:** Case/section/page citations alone did not give a reviewer a direct
+way to inspect the original public opinion. The Azure Search index identifies a
+document by its content SHA-256, while the curated dataset manifest already
+holds its canonical Delaware court PDF URL and case metadata.
+
+**Decision:** Keep the index schema stable and resolve a retrieved chunk's
+`document_id` against `SourceRegistry` at citation construction time. A
+resolved citation includes canonical HTTPS PDF URL (with a best-effort PDF page
+fragment), source checksum, document title, section path, page range, and
+retrieved excerpt. The registry has an explicit operator URL-reachability
+check, never run during a public web request.
+
+**Consequences:** No model-generated source URL is trusted, no re-ingestion is
+needed to add auditable evidence links to the current corpus, and every later
+corpus release must supply a valid canonical URL and checksum. User uploads are
+explicitly out of scope until authenticated, isolated eDiscovery processing is
+designed.

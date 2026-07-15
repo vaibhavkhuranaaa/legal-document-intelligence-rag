@@ -48,6 +48,8 @@ class Citation(BaseModel):
     page_end: int
     chunk_id: str
     snippet: str
+    source_url: str | None = None
+    source_checksum: str | None = None
 
     @property
     def display(self) -> str:

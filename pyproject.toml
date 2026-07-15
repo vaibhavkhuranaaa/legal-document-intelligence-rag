@@ -16,6 +16,8 @@ dependencies = [
     "azure-search-documents>=12.0.0",
     "azure-storage-blob>=12.30.0",
     "chromadb>=0.5",
+    "flask>=3.1",
+    "gunicorn>=23.0",
     "openai>=1.50",
     "pydantic>=2.7",
     "pydantic-settings>=2.4",
@@ -27,6 +29,8 @@ dependencies = [
 legal-rag-ingest = "legal_rag.ingestion.cli:main"
 legal-rag-index = "legal_rag.rag.index_cli:main"
 legal-rag-ask = "legal_rag.rag.ask_cli:main"
+legal-rag-evaluate = "legal_rag.evaluation.cli:main"
+legal-rag-validate-corpus = "legal_rag.rag.source_registry:main"
 
 [project.optional-dependencies]
 # Populated in later phases as each integration is implemented and approved.

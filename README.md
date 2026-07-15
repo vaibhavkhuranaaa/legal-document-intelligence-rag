@@ -14,8 +14,8 @@ Built as an AI engineering portfolio project demonstrating the full lifecycle:
 document ingestion via Azure Document Intelligence, structure-aware chunking,
 hybrid retrieval (vector + BM25), and grounded generation via Azure OpenAI —
 with production engineering throughout (typed schemas, dependency injection,
-structured logging, per-document failure isolation, 139 tests, CI, and eleven
-Architecture Decision Records).
+structured logging, per-document failure isolation, 147 tests, CI, and
+architecture decision records).
 
 ## What it does
 
@@ -50,7 +50,7 @@ PDF corpus (public Delaware M&A litigation)
   → Azure OpenAI embeddings (text-embedding-3-small)
   → hybrid retrieval: Chroma vector + BM25 lexical, RRF-fused
   → grounded generation (gpt-5-mini, citation-required prompting)
-  → Streamlit UI / CLI with resolved case–section–page citations
+  → public research workspace / CLI with resolved case–section–page citations
 ```
 
 Key engineering decisions are documented as ADRs in
@@ -84,13 +84,13 @@ uv run legal-rag-ingest                   # PDFs -> structured JSON (Azure DI)
 uv run legal-rag-index                    # chunk + embed + build hybrid index
 uv run legal-rag-ask "your question"      # grounded Q&A in the terminal
 
-uv run streamlit run src/legal_rag/ui/streamlit_app.py   # web demo
+uv run flask --app legal_rag.ui.flask_app:app run --port 8503  # Flask release candidate
 ```
 
 ## Development
 
 ```bash
-uv run pytest          # 139 tests, no network calls, deterministic
+uv run pytest          # 147 tests, no network calls, deterministic
 uv run ruff check .    # lint
 uv run ruff format .   # format
 ```
@@ -100,9 +100,11 @@ Every push and PR to `main` runs lint + tests via GitHub Actions
 
 ## Deployment
 
-The public Streamlit demo runs on Azure App Service with managed identity and
-Azure AI Search. See [docs/deployment.md](docs/deployment.md) for the runtime
-contract, data-release workflow, and release checks.
+The live Azure App Service demo currently runs Streamlit with managed identity
+and Azure AI Search. A verified Flask research-workspace candidate is on this
+branch; it has not yet replaced the public runtime. See
+[docs/deployment.md](docs/deployment.md) for the runtime contract, data-release
+workflow, evaluation procedure, and cutover checks.
 
 ## Project structure
 
@@ -113,7 +115,7 @@ src/legal_rag/
 │                 # manifests, structured logging
 ├── rag/          # chunking, embeddings, hybrid store (Chroma+BM25),
 │                 # grounded answer service, index/ask CLIs
-└── ui/           # Streamlit demo app
+└── ui/           # Flask workspace and the temporary Streamlit runtime
 tests/            # unit + pipeline tests (fakes for Azure/storage)
 docs/             # ADRs, roadmap, phase summaries, architecture review
 data/             # dataset manifest (committed) + corpus/outputs (gitignored)

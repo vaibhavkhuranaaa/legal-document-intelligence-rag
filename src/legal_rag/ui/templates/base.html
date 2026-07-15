@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Legal document intelligence{% endblock %}</title>
+    <meta name="description" content="Evidence-grounded research across public Delaware M&A opinions.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='workspace.css') }}">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="{{ url_for('home') }}"><span aria-hidden="true">§</span> Legal document intelligence</a>
+      <nav aria-label="Primary navigation">
+        <a href="{{ url_for('home') }}">Research</a>
+        <a href="{{ url_for('evidence') }}">Evidence</a>
+        <a href="{{ url_for('corpus') }}">Corpus</a>
+        <a href="{{ url_for('evaluation') }}">Evaluation</a>
+      </nav>
+    </header>
+    <main>{% block content %}{% endblock %}</main>
+    <footer>Public Delaware court opinions only · Informational research aid, not legal advice.</footer>
+  </body>
+</html>

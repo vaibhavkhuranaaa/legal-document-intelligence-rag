@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Evidence · Legal document intelligence{% endblock %}
+{% block content %}
+<section class="page-intro"><p class="eyebrow">eDiscovery review surface</p><h1>Evidence explorer</h1><p>Inspect the exact passages used for a research question before relying on any answer.</p></section>
+<form class="inline-form" method="get"><label for="q">Search public evidence</label><input id="q" name="q" value="{{ question }}" placeholder="Enter a question or issue"><button type="submit">Retrieve evidence</button></form>
+{% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
+{% if question and not results and not error %}<div class="notice">No passages were returned for this question.</div>{% endif %}
+<div class="evidence-list">
+{% for result, citation in results %}
+  <article class="evidence-card expanded">
+    <div class="evidence-meta"><span>Passage {{ citation.marker }}</span><span>{{ citation|pages }}</span><span>Relevance {{ "%.2f"|format(result.score) }}</span></div>
+    <h2>{{ citation.document_title }}</h2>
+    <p class="section-path">{{ citation.section_path|join(' › ') if citation.section_path else "Document body" }}</p>
+    <blockquote>{{ result.chunk.text }}</blockquote>
+    <p class="checksum">Source checksum: <code>{{ citation.source_checksum }}</code></p>
+    {% if citation.source_url %}<a href="{{ citation.source_url }}" target="_blank" rel="noopener noreferrer">Open original opinion at cited page ↗</a>{% endif %}
+  </article>
+{% endfor %}
+</div>
+{% endblock %}

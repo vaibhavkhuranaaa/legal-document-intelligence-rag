@@ -6,9 +6,10 @@ in [`roadmap.md`](./roadmap.md).
 
 ## Runtime contract
 
-The public application is the Streamlit UI only. It serves a previously built
-search index and must never ingest documents or create embeddings during a web
-request.
+The public application serves a previously built search index and must never
+ingest documents or create embeddings during a web request. The live runtime is
+currently Streamlit. The Flask workspace is a verified release candidate and
+must not replace the startup command until its production cutover checks pass.
 
 Azure App Service on Linux uses [`startup.txt`](../startup.txt) as its custom
 startup command:
@@ -19,6 +20,19 @@ python -m streamlit run src/legal_rag/ui/streamlit_app.py --server.address 0.0.0
 
 The file is versioned so the same command is used in every environment. App
 Service must be configured to use it as the startup command.
+
+### Approved Flask cutover command (not yet active)
+
+After the release candidate passes source validation, benchmark, deployment,
+and public smoke tests, replace `startup.txt` and the App Service startup
+setting with:
+
+```text
+gunicorn --bind 0.0.0.0:8000 legal_rag.ui.flask_app:app
+```
+
+Only then remove Streamlit from runtime dependencies and delete its UI files in
+a follow-up commit. This keeps the current public demo available during review.
 
 `pyproject.toml` and `uv.lock` remain the dependency source of truth. The
 root [`requirements.txt`](../requirements.txt) is a committed App Service
@@ -76,8 +90,12 @@ deployment:
 2. Run ingestion against the controlled source location.
 3. Validate the structured records and inspect failures/warnings.
 4. Build the production retrieval index from the validated records.
-5. Run retrieval and citation smoke tests against the candidate index.
-6. Promote the index only after the checks pass; record its manifest/version.
+5. Run `legal-rag-validate-corpus --check-urls`; reject the release if a
+   canonical public source is unavailable.
+6. Run `legal-rag-evaluate` against the candidate index and review the written
+   report before publishing aggregate metrics to `data/evaluation/latest.json`.
+7. Run retrieval and citation smoke tests against the candidate index.
+8. Promote the index only after the checks pass; record its manifest/version.
 
 The public app continues to serve the last promoted index if a corpus release
 fails.
@@ -95,3 +113,6 @@ After deployment, verify that the app loads, reports a nonzero indexed-chunk
 count, answers a known corpus question with citations, and refuses an unrelated
 question. Check App Service logs and Application Insights for startup or
 dependency failures.
+
+For the Flask cutover, also verify `/healthz`, `/corpus`, `/evaluation`, and
+an Evidence card's canonical PDF page link. The live URL must remain unchanged.

@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Evaluation · Legal document intelligence{% endblock %}
+{% block content %}
+<section class="page-intro"><p class="eyebrow">Release evidence</p><h1>Evaluation</h1><p>This benchmark measures evidence retrieval and citation provenance—not legal correctness or legal advice.</p></section>
+<section class="evaluation-card"><div><p class="eyebrow">Benchmark {{ report.benchmark_version }}</p><h2>{{ report.question_count }} gold questions · {{ report.corpus_document_count }} source opinions</h2><p>{{ report.note }}</p></div>{% if report.status == "complete" %}<div class="metrics"><div><strong>{{ "%.0f"|format(report.metrics.retrieval_hit_rate_at_k * 100) }}%</strong><span>retrieval hit rate @{{ report.retrieval_k }}</span></div><div><strong>{{ "%.0f"|format(report.metrics.citation_provenance_validity * 100) }}%</strong><span>valid citation provenance</span></div></div>{% else %}<div class="notice">Baseline pending the first explicit corpus-release evaluation. No scores are shown until a real run is recorded.</div>{% endif %}</section>
+<section class="methodology"><h2>Method</h2><ol><li>Run each curated question against the candidate index.</li><li>Check whether expected source evidence appears in the top {{ report.retrieval_k }} passages.</li><li>Verify every generated citation has an HTTPS canonical source, checksum, and valid page range.</li><li>Publish aggregate results only after a successful operator release check.</li></ol></section>
+{% endblock %}

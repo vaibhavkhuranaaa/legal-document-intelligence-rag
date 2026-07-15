@@ -6,9 +6,11 @@ separate.
 
 ## Current implemented system
 
-The application is a local, API-key-authenticated Streamlit and CLI demo over a
-public corpus of Delaware M&A litigation. It has been validated against Azure
-Document Intelligence and Azure OpenAI.
+The application is a public corpus research system over Delaware M&A litigation.
+Production uses managed identity, Azure OpenAI, and Azure AI Search; local
+development retains API-key/Chroma support. The live public host currently
+serves the Streamlit runtime. The repository also contains a verified Flask
+research-workspace candidate, which is intentionally not cut over yet.
 
 ```text
 Public PDF corpus
@@ -18,9 +20,9 @@ Public PDF corpus
   -> versioned DocumentRecord JSON
   -> structure-aware chunking
   -> Azure OpenAI embeddings
-  -> local Chroma vector retrieval + in-process BM25, RRF fused
+  -> Azure AI Search production retrieval / local Chroma + BM25 development retrieval
   -> Azure OpenAI grounded answering
-  -> Streamlit UI / CLI
+  -> public research workspace / CLI
 ```
 
 ### Boundaries that are already in place
@@ -33,18 +35,31 @@ Public PDF corpus
 - Construction occurs in the CLI/UI entry points; pipeline and domain logic use
   injected dependencies.
 
-This is intentionally suitable for local development, but it is not yet a
-production deployment: Chroma persists locally, authentication uses API keys,
-and no Azure-hosted storage or search backend exists.
+The local backend is intentionally suitable for deterministic development.
+Production uses the Azure implementations behind the same interfaces; a web
+request never performs ingestion, embedding, or index mutation.
 
-## Approved deployment direction (not yet implemented)
+### Evidence provenance and evaluation
+
+- `data/dataset_manifest.json` is the source registry for every public opinion.
+  `SourceRegistry` validates HTTPS canonical source URLs and checksum identity.
+- `AnswerService` resolves each cited document ID through that registry and
+  returns the canonical PDF page link, checksum, document, section, page range,
+  and excerpt together.
+- The Flask Evidence explorer displays that provenance without trusting model-
+  composed citations.
+- `data/evaluation/gold_qa_v1.json` contains the versioned 25-question gold
+  benchmark. `legal-rag-evaluate` is an explicit, Azure-backed release check;
+  only its recorded aggregate results may be displayed publicly.
+
+## Production deployment direction
 
 ```text
 Controlled ingestion and indexing workflow
   -> Azure Blob Storage (raw documents, processed records, manifests)
   -> Azure AI Search (production hybrid index)
 
-Azure App Service running Streamlit
+Azure App Service running the public UI
   -> managed identity
   -> Azure OpenAI + Azure AI Search + Blob Storage
   -> Application Insights
@@ -62,5 +77,7 @@ available for development and deterministic tests.
 - Azure adapter layer: implemented and unit-tested. `DefaultAzureCredential`
   authentication, Blob-backed ingestion storage, and Azure AI Search hybrid
   retrieval are selected through typed settings.
-- Production Azure resources, Search index schema, RBAC, observability, and
-  CD: not provisioned; see [roadmap.md](./roadmap.md).
+- Production Azure resources, Search index schema, RBAC, and 390 approved
+  chunks: provisioned and live.
+- Flask cutover: locally verified release candidate; deployment/startup-command
+  switch, Azure smoke test, and Streamlit retirement remain a separate approval.

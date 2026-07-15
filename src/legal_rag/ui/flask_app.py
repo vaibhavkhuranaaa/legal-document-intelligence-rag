@@ -1,0 +1,170 @@
+"""Flask research workspace for the public legal-document corpus."""
+
+from __future__ import annotations
+
+import json
+from collections.abc import Callable
+from functools import cached_property
+from pathlib import Path
+
+from flask import Flask, abort, render_template, request
+
+from legal_rag.evaluation.models import EvaluationReport
+from legal_rag.rag.answer import AnswerService
+from legal_rag.rag.azure_openai import AzureOpenAIClient
+from legal_rag.rag.backends import build_retrieval_backend
+from legal_rag.rag.config import get_rag_settings
+from legal_rag.rag.models import Answer, Citation, ScoredChunk
+from legal_rag.rag.source_registry import SourceRegistry
+
+_MAX_QUESTION_LENGTH = 2_000
+_DEFAULT_EVALUATION_REPORT = Path("data/evaluation/latest.json")
+
+
+class _Workspace:
+    def __init__(
+        self,
+        registry: SourceRegistry,
+        service_factory: Callable[[SourceRegistry], tuple[AnswerService, int]],
+    ) -> None:
+        self.registry = registry
+        self._service_factory = service_factory
+
+    @cached_property
+    def service_and_count(self) -> tuple[AnswerService, int]:
+        return self._service_factory(self.registry)
+
+    def service(self) -> AnswerService:
+        return self.service_and_count[0]
+
+    def chunk_count(self) -> int:
+        return self.service_and_count[1]
+
+
+def _build_service(registry: SourceRegistry) -> tuple[AnswerService, int]:
+    settings = get_rag_settings()
+    store = build_retrieval_backend(settings)
+    return AnswerService(AzureOpenAIClient(settings), store, registry), store.count()
+
+
+def create_app(
+    *,
+    registry: SourceRegistry | None = None,
+    service_factory: Callable[[SourceRegistry], tuple[AnswerService, int]] = _build_service,
+    evaluation_report_path: Path = _DEFAULT_EVALUATION_REPORT,
+) -> Flask:
+    """Create the read-only public research application."""
+    registry = registry or SourceRegistry.load(Path("data/dataset_manifest.json"))
+    workspace = _Workspace(registry, service_factory)
+    app = Flask(__name__)
+    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
+
+    @app.template_filter("pages")
+    def format_pages(citation: Citation) -> str:
+        return (
+            f"p. {citation.page_start}"
+            if citation.page_start == citation.page_end
+            else f"pp. {citation.page_start}–{citation.page_end}"
+        )
+
+    def render_home(*, answer: Answer | None = None, error: str | None = None, question: str = ""):
+        try:
+            chunk_count = workspace.chunk_count()
+        except Exception:
+            chunk_count = None
+            error = error or (
+                "The research service is temporarily unavailable. Please try again shortly."
+            )
+        return render_template(
+            "home.html",
+            answer=answer,
+            error=error,
+            question=question,
+            chunk_count=chunk_count,
+            source_count=len(workspace.registry.documents),
+        )
+
+    @app.get("/")
+    def home():
+        return render_home()
+
+    @app.post("/ask")
+    def ask():
+        question = request.form.get("question", "").strip()
+        if not question:
+            return render_home(error="Enter a research question to search the public record."), 400
+        if len(question) > _MAX_QUESTION_LENGTH:
+            return (
+                render_home(
+                    error="Keep research questions under 2,000 characters.", question=question
+                ),
+                400,
+            )
+        try:
+            answer = workspace.service().ask(question)
+        except Exception:
+            return render_home(
+                error="The research service is temporarily unavailable. Please try again shortly.",
+                question=question,
+            ), 503
+        return render_home(answer=answer, question=question)
+
+    @app.get("/evidence")
+    def evidence():
+        question = request.args.get("q", "").strip()
+        results: list[tuple[ScoredChunk, Citation]] = []
+        error = None
+        if question:
+            if len(question) > _MAX_QUESTION_LENGTH:
+                abort(400)
+            try:
+                results = [
+                    (result, workspace.service().citation_for(index, result))
+                    for index, result in enumerate(workspace.service().retrieve(question), start=1)
+                ]
+            except Exception:
+                error = "Evidence retrieval is temporarily unavailable. Please try again shortly."
+        return render_template("evidence.html", question=question, results=results, error=error)
+
+    @app.get("/corpus")
+    def corpus():
+        court = request.args.get("court", "")
+        year = request.args.get("year", "")
+        topic = request.args.get("topic", "")
+        documents = workspace.registry.documents
+        if court:
+            documents = [document for document in documents if document.court == court]
+        if year:
+            documents = [document for document in documents if str(document.year) == year]
+        if topic:
+            documents = [document for document in documents if document.legal_topic == topic]
+        return render_template(
+            "corpus.html",
+            documents=documents,
+            courts=sorted({document.court for document in workspace.registry.documents}),
+            years=sorted(
+                {document.year for document in workspace.registry.documents}, reverse=True
+            ),
+            topics=sorted({document.legal_topic for document in workspace.registry.documents}),
+            selected_court=court,
+            selected_year=year,
+            selected_topic=topic,
+        )
+
+    @app.get("/evaluation")
+    def evaluation():
+        report = _load_evaluation_report(evaluation_report_path)
+        return render_template("evaluation.html", report=report)
+
+    @app.get("/healthz")
+    def healthz():
+        return {"status": "ok", "service": "legal-document-intelligence"}
+
+    return app
+
+
+def _load_evaluation_report(path: Path) -> EvaluationReport:
+    return EvaluationReport.model_validate(json.loads(path.read_text()))
+
+
+app = create_app()

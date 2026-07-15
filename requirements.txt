@@ -42,7 +42,9 @@ azure-storage-blob==12.30.0
 bcrypt==5.0.0
     # via chromadb
 blinker==1.9.0
-    # via streamlit
+    # via
+    #   flask
+    #   streamlit
 build==1.5.1
     # via chromadb
 cachetools==7.1.4
@@ -61,6 +63,7 @@ chromadb==1.5.9
     # via legal-rag
 click==8.4.2
     # via
+    #   flask
     #   huggingface-hub
     #   streamlit
     #   uvicorn
@@ -82,6 +85,8 @@ durationpy==0.10
     # via kubernetes
 filelock==3.29.7
     # via huggingface-hub
+flask==3.1.3
+    # via legal-rag
 flatbuffers==25.12.19
     # via onnxruntime
 frozenlist==1.8.0
@@ -100,6 +105,8 @@ grpcio==1.82.1
     # via
     #   chromadb
     #   opentelemetry-exporter-otlp-proto-grpc
+gunicorn==26.0.0
+    # via legal-rag
 h11==0.16.0
     # via
     #   httpcore
@@ -133,10 +140,13 @@ isodate==0.7.2
     #   azure-search-documents
     #   azure-storage-blob
 itsdangerous==2.2.0
-    # via streamlit
+    # via
+    #   flask
+    #   streamlit
 jinja2==3.1.6
     # via
     #   altair
+    #   flask
     #   pydeck
 jiter==0.16.0
     # via openai
@@ -151,7 +161,10 @@ kubernetes==36.0.2
 markdown-it-py==4.2.0
     # via rich
 markupsafe==3.0.3
-    # via jinja2
+    # via
+    #   flask
+    #   jinja2
+    #   werkzeug
 mdurl==0.1.2
     # via markdown-it-py
 mmh3==5.2.1
@@ -210,6 +223,7 @@ packaging==26.2
     # via
     #   altair
     #   build
+    #   gunicorn
     #   huggingface-hub
     #   onnxruntime
     #   streamlit
@@ -374,5 +388,7 @@ websockets==16.1
     # via
     #   streamlit
     #   uvicorn
+werkzeug==3.1.8
+    # via flask
 yarl==1.24.2
     # via aiohttp

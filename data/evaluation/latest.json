@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "status": "pending",
+  "benchmark_version": "gold-qa-v1",
+  "corpus_document_count": 4,
+  "question_count": 25,
+  "retrieval_k": 8,
+  "generated_at": null,
+  "metrics": null,
+  "note": "Baseline pending the first explicit corpus-release evaluation. Scores will be published only from a recorded run against the candidate index."
+}

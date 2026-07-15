@@ -12,6 +12,7 @@ import re
 
 from legal_rag.rag.azure_openai import AzureOpenAIClient
 from legal_rag.rag.models import Answer, Citation, ScoredChunk
+from legal_rag.rag.source_registry import SourceRegistry
 from legal_rag.rag.store import RetrievalBackend
 
 _SYSTEM_PROMPT = """\
@@ -35,13 +36,18 @@ _NO_EVIDENCE_TEXT = "The provided documents do not contain enough information"
 
 
 class AnswerService:
-    def __init__(self, client: AzureOpenAIClient, store: RetrievalBackend) -> None:
+    def __init__(
+        self,
+        client: AzureOpenAIClient,
+        store: RetrievalBackend,
+        source_registry: SourceRegistry | None = None,
+    ) -> None:
         self._client = client
         self._store = store
+        self._source_registry = source_registry
 
     def ask(self, question: str, *, k: int = 8) -> Answer:
-        query_vector = self._client.embed([question])[0]
-        results = self._store.search(query_text=question, query_vector=query_vector, k=k)
+        results = self.retrieve(question, k=k)
 
         if not results:
             return Answer(
@@ -57,11 +63,16 @@ class AnswerService:
 
         cited_markers = self._extract_markers(raw_answer, limit=len(results))
         citations = [
-            self._citation(marker, results[marker - 1]) for marker in sorted(cited_markers)
+            self.citation_for(marker, results[marker - 1]) for marker in sorted(cited_markers)
         ]
         grounded = bool(citations) and _NO_EVIDENCE_TEXT not in raw_answer
 
         return Answer(question=question, text=raw_answer, citations=citations, grounded=grounded)
+
+    def retrieve(self, question: str, *, k: int = 8) -> list[ScoredChunk]:
+        """Return evidence passages without generating an answer."""
+        query_vector = self._client.embed([question])[0]
+        return self._store.search(query_text=question, query_vector=query_vector, k=k)
 
     @staticmethod
     def _build_context(results: list[ScoredChunk]) -> str:
@@ -77,10 +88,10 @@ class AnswerService:
     def _extract_markers(text: str, *, limit: int) -> set[int]:
         return {int(m) for m in _MARKER_PATTERN.findall(text) if 1 <= int(m) <= limit}
 
-    @staticmethod
-    def _citation(marker: int, scored: ScoredChunk) -> Citation:
+    def citation_for(self, marker: int, scored: ScoredChunk) -> Citation:
         c = scored.chunk
         snippet = c.text[:280] + ("…" if len(c.text) > 280 else "")
+        source = self._source_registry.get(c.document_id) if self._source_registry else None
         return Citation(
             marker=marker,
             document_title=c.document_title,
@@ -89,4 +100,6 @@ class AnswerService:
             page_end=c.page_end,
             chunk_id=c.chunk_id,
             snippet=snippet,
+            source_url=source.source_page_url(c.page_start) if source else None,
+            source_checksum=source.document_id if source else None,
         )
