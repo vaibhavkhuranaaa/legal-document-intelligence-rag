@@ -75,6 +75,18 @@ Status: **Complete — Flask/Gunicorn deployed, benchmarked, and smoke-tested**
   passed on 2026-07-15. Streamlit retirement is recorded in the follow-up
   runtime-cleanup commit.
 
+## Phase 5A — Delaware opinion expansion
+
+Status: **Complete — staged release validated; promotion pending the App Service switch**
+
+- Ten additional official Delaware court PDFs were checksum-registered and
+  ingested successfully, expanding the public corpus to 14 opinions / 1,133 pages.
+- A separate Azure AI Search index contains 1,468 chunks, preserving the prior
+  390-chunk index as the rollback point.
+- The 45-question `gold-qa-v2-delaware-expansion` release benchmark recorded
+  100% retrieval hit rate@8 and 100% citation-provenance validity against that
+  staged index. This remains a retrieval/provenance measure, not legal accuracy.
+
 ## Future phases
 
 Per the architecture review's priority roadmap: parser v2 (outline state

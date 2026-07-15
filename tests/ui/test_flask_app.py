@@ -73,6 +73,16 @@ def test_public_workspace_routes_render() -> None:
     assert b">Evaluation<" not in client.get("/").data
 
 
+def test_corpus_exposes_each_registered_official_source() -> None:
+    registry = SourceRegistry.load(Path("data/dataset_manifest.json"))
+    page = _client().get("/corpus")
+
+    assert page.status_code == 200
+    assert page.data.count(b"Open canonical court PDF") == len(registry.documents)
+    for document in registry.documents:
+        assert document.source_url.encode() in page.data
+
+
 def test_answer_and_evidence_expose_page_aware_source_link() -> None:
     client = _client()
 

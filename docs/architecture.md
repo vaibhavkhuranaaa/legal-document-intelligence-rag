@@ -47,8 +47,8 @@ request never performs ingestion, embedding, or index mutation.
   and excerpt together.
 - The Flask Evidence explorer displays that provenance without trusting model-
   composed citations.
-- `data/evaluation/gold_qa_v1.json` contains the versioned 25-question gold
-  benchmark. `legal-rag-evaluate` is an explicit, Azure-backed release check;
+- `data/evaluation/gold_qa_v2.json` contains the versioned 45-question gold
+  benchmark across the 14-opinion public corpus. `legal-rag-evaluate` is an explicit, Azure-backed release check;
   only its recorded aggregate results may be displayed publicly.
 
 ## Production deployment direction
@@ -76,6 +76,6 @@ available for development and deterministic tests.
 - Azure adapter layer: implemented and unit-tested. `DefaultAzureCredential`
   authentication, Blob-backed ingestion storage, and Azure AI Search hybrid
   retrieval are selected through typed settings.
-- Production Azure resources, Search index schema, RBAC, and 390 approved
-  chunks: provisioned and live.
+- Production Azure resources, Search index schema, RBAC, and a separately
+  staged 1,468-chunk expanded corpus index: provisioned and validated.
 - Flask/Gunicorn workspace: deployed and smoke-tested at the public host.

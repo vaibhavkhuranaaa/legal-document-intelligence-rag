@@ -14,7 +14,7 @@ Built as an AI engineering portfolio project demonstrating the full lifecycle:
 document ingestion via Azure Document Intelligence, structure-aware chunking,
 hybrid retrieval (vector + BM25), and grounded generation via Azure OpenAI —
 with production engineering throughout (typed schemas, dependency injection,
-structured logging, per-document failure isolation, 147 tests, CI, and
+structured logging, per-document failure isolation, 150 tests, CI, and
 architecture decision records).
 
 ## What it does
@@ -40,8 +40,8 @@ cite retrieved passages or say the documents don't contain the answer.
 
 ## Evaluation
 
-The versioned 25-question `gold-qa-v1` benchmark was run against the current
-production index on 2026-07-15. It recorded **100% retrieval hit
+The versioned 45-question `gold-qa-v2-delaware-expansion` benchmark was run
+against the staged 14-document release index on 2026-07-15. It recorded **100% retrieval hit
 rate@8** and **100% citation-provenance validity**. These metrics verify that
 expected source documents were retrieved and displayed citations have a valid
 HTTPS source, checksum, and page range; they are not a legal-accuracy claim.
@@ -69,7 +69,7 @@ Key engineering decisions are documented as ADRs in
 
 ## Corpus
 
-Four public Delaware M&A opinions (305 pages), registered with checksums and
+Fourteen public Delaware M&A opinions (1,133 pages), registered with checksums and
 provenance in [data/dataset_manifest.json](data/dataset_manifest.json):
 
 | Case | Court | Pages |
@@ -100,7 +100,7 @@ uv run flask --app legal_rag.ui.flask_app:app run --port 8503
 ## Development
 
 ```bash
-uv run pytest          # 147 tests, no network calls, deterministic
+uv run pytest          # 150 tests, no network calls, deterministic
 uv run ruff check .    # lint
 uv run ruff format .   # format
 ```

@@ -12,7 +12,10 @@ from openai import AzureOpenAI, RateLimitError
 
 from legal_rag.rag.config import RagSettings
 
-_EMBED_BATCH_SIZE = 32
+# The configured deployment's token-per-minute allowance is modest.  Eight
+# legal passages remain comfortably below its per-request token budget while
+# avoiding a retry loop on long, page-dense corpus releases.
+_EMBED_BATCH_SIZE = 8
 _MAX_RATE_LIMIT_RETRIES = 5
 _RATE_LIMIT_WAIT_SECONDS = 30.0
 
