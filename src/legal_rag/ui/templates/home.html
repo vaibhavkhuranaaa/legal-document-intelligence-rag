@@ -32,7 +32,8 @@
       <h4>{{ citation.document_title }}</h4>
       <p class="section-path">{{ citation.section_path|join(' › ') if citation.section_path else "Document body" }}</p>
       <p>{{ citation.snippet }}</p>
-      {% if citation.source_url %}<a href="{{ citation.source_url }}" target="_blank" rel="noopener noreferrer">Open original opinion ↗</a>{% endif %}
+      <a href="{{ url_for('evidence', q=question) }}#evidence-{{ citation.marker }}">Inspect evidence match →</a>
+      {% if citation.source_url %}<br><a href="{{ citation.source_url }}" target="_blank" rel="noopener noreferrer">Open original opinion ↗</a>{% endif %}
     </article>
     {% endfor %}
   </div>

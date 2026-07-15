@@ -2,7 +2,7 @@ from pathlib import Path
 
 from legal_rag.rag.models import Answer, Chunk, Citation, ScoredChunk
 from legal_rag.rag.source_registry import SourceRegistry
-from legal_rag.ui.flask_app import create_app
+from legal_rag.ui.flask_app import build_evidence_matches, create_app
 
 
 class _FakeService:
@@ -70,6 +70,7 @@ def test_public_workspace_routes_render() -> None:
     assert client.get("/corpus").status_code == 200
     assert client.get("/evaluation").status_code == 200
     assert client.get("/healthz").get_json()["status"] == "ok"
+    assert b">Evaluation<" not in client.get("/").data
 
 
 def test_answer_and_evidence_expose_page_aware_source_link() -> None:
@@ -83,6 +84,9 @@ def test_answer_and_evidence_expose_page_aware_source_link() -> None:
     assert b"#page=2" in answer.data
     assert evidence.status_code == 200
     assert b"Source checksum" in evidence.data
+    assert b"Retrieval match 100/100" in evidence.data
+    assert b"Top match" in evidence.data
+    assert b"#evidence-1" in answer.data
 
 
 def test_empty_question_is_rejected() -> None:
@@ -90,3 +94,18 @@ def test_empty_question_is_rejected() -> None:
 
     assert response.status_code == 400
     assert b"Enter a research question" in response.data
+
+
+def test_evidence_match_is_relative_to_the_returned_result_set() -> None:
+    service = _FakeService(SourceRegistry.load(Path("data/dataset_manifest.json")))
+    first = service.retrieve("question")[0]
+    second = first.model_copy(update={"score": 0.45})
+
+    matches = build_evidence_matches(
+        [(first, service.citation_for(1, first)), (second, service.citation_for(2, second))]
+    )
+
+    assert [(match.score, match.tier) for match in matches] == [
+        (100, "Top match"),
+        (50, "Supporting match"),
+    ]

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
 
@@ -19,6 +20,32 @@ from legal_rag.rag.source_registry import SourceRegistry
 
 _MAX_QUESTION_LENGTH = 2_000
 _DEFAULT_EVALUATION_REPORT = Path("data/evaluation/latest.json")
+
+
+@dataclass(frozen=True)
+class EvidenceMatch:
+    """A query-relative retrieval signal for one displayed passage."""
+
+    result: ScoredChunk
+    citation: Citation
+    score: int
+    tier: str
+
+
+def build_evidence_matches(
+    results: list[tuple[ScoredChunk, Citation]],
+) -> list[EvidenceMatch]:
+    """Normalize retrieved scores within one result set, never as certainty."""
+    if not results:
+        return []
+    top_score = max(result.score for result, _ in results)
+    denominator = top_score if top_score > 0 else 1.0
+    matches: list[EvidenceMatch] = []
+    for result, citation in results:
+        score = round(min(100, max(0, result.score / denominator * 100)))
+        tier = "Top match" if score >= 90 else "Strong match" if score >= 70 else "Supporting match"
+        matches.append(EvidenceMatch(result=result, citation=citation, score=score, tier=tier))
+    return matches
 
 
 class _Workspace:
@@ -112,7 +139,7 @@ def create_app(
     @app.get("/evidence")
     def evidence():
         question = request.args.get("q", "").strip()
-        results: list[tuple[ScoredChunk, Citation]] = []
+        matches: list[EvidenceMatch] = []
         error = None
         if question:
             if len(question) > _MAX_QUESTION_LENGTH:
@@ -122,9 +149,10 @@ def create_app(
                     (result, workspace.service().citation_for(index, result))
                     for index, result in enumerate(workspace.service().retrieve(question), start=1)
                 ]
+                matches = build_evidence_matches(results)
             except Exception:
                 error = "Evidence retrieval is temporarily unavailable. Please try again shortly."
-        return render_template("evidence.html", question=question, results=results, error=error)
+        return render_template("evidence.html", question=question, matches=matches, error=error)
 
     @app.get("/corpus")
     def corpus():
