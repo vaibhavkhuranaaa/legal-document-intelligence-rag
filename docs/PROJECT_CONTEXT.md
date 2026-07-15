@@ -71,7 +71,7 @@ flagged the answer as ungrounded).
 | Deployment infrastructure | 🟡 Nearly complete | Production resource group, identity, Storage, Blob container, AI Search, `legal-rag-chunks`, and 390 public chunks are live |
 | App Service public host | ✅ Live | Streamlit at the repository's public demo URL; Flask cutover not yet performed |
 | Parser v2 (outline state machine) | ❌ Not started | Current heading-style registry works but has known residual limitations (§6) |
-| Evaluation harness | 🟡 Implemented, baseline pending | 25-question versioned benchmark and evaluator; no scores published until a recorded Azure run |
+| Evaluation harness | ✅ Baseline recorded | `gold-qa-v1`: 25 questions, 100% retrieval hit rate@8 and citation-provenance validity against the 390-chunk candidate index |
 
 ## 4. Architecture At A Glance
 
@@ -128,9 +128,10 @@ uv run ruff check .                                        # lint
    pipeline); validated corpus is Delaware court opinions instead. Product
    scope now explicitly covers both; EDGAR ingestion is an approved,
    deferred future milestone (ADR-0011).
-3. **Evaluation baseline is intentionally pending.** The 25-question gold-QA
-   corpus and deterministic evaluator are committed, but scores must be
-   generated against the candidate Azure index before they are displayed.
+3. **Evaluation scope is intentionally narrow.** `gold-qa-v1` validates
+   retrieval coverage and citation provenance, not legal-answer correctness;
+   expand to attorney-reviewed answer/citation correctness only in a dedicated
+   later evaluation phase.
 4. **Flask is not live yet.** The existing Streamlit host remains public until
    the Flask deployment, health check, evidence-link check, benchmark, and
    smoke test are approved.
@@ -142,9 +143,9 @@ uv run ruff check .                                        # lint
 Full detail and reasoning: `docs/ARCHITECTURE_REVIEW.md` §14. Summary,
 highest-value first:
 
-1. **Flask cutover and actual benchmark run.** Review the candidate deployment,
-   run the source check and gold-QA evaluator against Azure, then replace the
-   App Service startup command without changing the public URL.
+1. **Flask cutover.** The source check and `gold-qa-v1` Azure benchmark passed;
+   replace the App Service startup command without changing the public URL,
+   verify all public routes, then retire the Streamlit runtime in a follow-up.
 2. **Parser v2: outline state machine.** Replaces style-name matching with
    per-branch enumerator-value tracking and successor prediction. Fixes both
    known residual limitations (§6.1). Pure-logic change, no schema impact,

@@ -38,6 +38,16 @@ Sources:
 Questions outside the corpus are **refused, not hallucinated** — the model must
 cite retrieved passages or say the documents don't contain the answer.
 
+## Evaluation
+
+The versioned 25-question `gold-qa-v1` benchmark was run against the current
+production candidate index on 2026-07-15. It recorded **100% retrieval hit
+rate@8** and **100% citation-provenance validity**. These metrics verify that
+expected source documents were retrieved and displayed citations have a valid
+HTTPS source, checksum, and page range; they are not a legal-accuracy claim.
+See [data/evaluation/latest.json](data/evaluation/latest.json) for the exact,
+versioned report and `legal-rag-evaluate` for the repeatable release check.
+
 ## Architecture
 
 ```

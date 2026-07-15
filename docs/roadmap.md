@@ -62,14 +62,15 @@ the public Streamlit demo at the repository's live-demo URL.
 
 ## Phase 4 — Evidence-first Flask workspace
 
-Status: **In progress — local release candidate verified; production cutover not approved**
+Status: **In progress — local release candidate and production benchmark verified; Flask cutover pending**
 
 - Flask/Gunicorn workspace with Research, Evidence, Corpus, Evaluation, and
   health routes.
 - Public source registry resolving every evidence card to canonical HTTPS PDF,
   page, checksum, section, and excerpt.
-- Versioned 25-question gold-QA dataset and evaluation CLI; public evaluation
-  report intentionally remains pending until an Azure-backed release run.
+- Versioned 25-question gold-QA dataset and evaluation CLI. `gold-qa-v1` ran
+  against the current 390-chunk production candidate index on 2026-07-15 and
+  recorded 100% retrieval hit rate@8 and 100% citation-provenance validity.
 - Before cutover: revalidate the source URLs, run the benchmark against the
   candidate index, review the report, deploy Flask, smoke-test the public URL,
   then remove the Streamlit runtime in a follow-up commit.
