@@ -4,6 +4,8 @@ A production-grade **Legal Document Intelligence platform** built on Azure: real
 court documents go in as PDFs, and citation-backed answers come out — every claim
 grounded in a retrieved passage with the exact case, section, and page number.
 
+> **[Open the live demo →](https://app-legal-rag-prod-278f1d.azurewebsites.net/)**
+
 > **Picking this project back up (including in a new AI chat session)?** Read
 > [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) first — a self-contained
 > summary, use case, current state, and prioritized "how to improve" roadmap.
@@ -12,7 +14,7 @@ Built as an AI engineering portfolio project demonstrating the full lifecycle:
 document ingestion via Azure Document Intelligence, structure-aware chunking,
 hybrid retrieval (vector + BM25), and grounded generation via Azure OpenAI —
 with production engineering throughout (typed schemas, dependency injection,
-structured logging, per-document failure isolation, 131 tests, CI, and eleven
+structured logging, per-document failure isolation, 139 tests, CI, and eleven
 Architecture Decision Records).
 
 ## What it does
@@ -88,7 +90,7 @@ uv run streamlit run src/legal_rag/ui/streamlit_app.py   # web demo
 ## Development
 
 ```bash
-uv run pytest          # 131 tests, no network calls, deterministic
+uv run pytest          # 139 tests, no network calls, deterministic
 uv run ruff check .    # lint
 uv run ruff format .   # format
 ```
@@ -98,10 +100,9 @@ Every push and PR to `main` runs lint + tests via GitHub Actions
 
 ## Deployment
 
-The current application is a verified local demo. The Azure production
-deployment is phased separately; see [docs/deployment.md](docs/deployment.md)
-for the App Service runtime contract, data-release workflow, and release
-checks.
+The public Streamlit demo runs on Azure App Service with managed identity and
+Azure AI Search. See [docs/deployment.md](docs/deployment.md) for the runtime
+contract, data-release workflow, and release checks.
 
 ## Project structure
 
