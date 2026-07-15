@@ -41,7 +41,7 @@ cite retrieved passages or say the documents don't contain the answer.
 ## Evaluation
 
 The versioned 45-question `gold-qa-v2-delaware-expansion` benchmark was run
-against the staged 14-document release index on 2026-07-15. It recorded **100% retrieval hit
+against the promoted 14-document production index on 2026-07-15. It recorded **100% retrieval hit
 rate@8** and **100% citation-provenance validity**. These metrics verify that
 expected source documents were retrieved and displayed citations have a valid
 HTTPS source, checksum, and page range; they are not a legal-accuracy claim.

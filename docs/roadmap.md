@@ -77,12 +77,12 @@ Status: **Complete — Flask/Gunicorn deployed, benchmarked, and smoke-tested**
 
 ## Phase 5A — Delaware opinion expansion
 
-Status: **Complete — staged release validated; promotion pending the App Service switch**
+Status: **Complete — promoted and smoke-tested**
 
 - Ten additional official Delaware court PDFs were checksum-registered and
   ingested successfully, expanding the public corpus to 14 opinions / 1,133 pages.
-- A separate Azure AI Search index contains 1,468 chunks, preserving the prior
-  390-chunk index as the rollback point.
+- The promoted Azure AI Search index contains 1,468 chunks, preserving the
+  prior 390-chunk index as the rollback point.
 - The 45-question `gold-qa-v2-delaware-expansion` release benchmark recorded
   100% retrieval hit rate@8 and 100% citation-provenance validity against that
   staged index. This remains a retrieval/provenance measure, not legal accuracy.

@@ -20,7 +20,7 @@ It was built in disciplined phases (bootstrap → ingestion pipeline → live
 Azure validation → RAG demo), each phase verified against real Azure services
 before the next began, with ADRs recording every non-trivial decision. The
 demo is **working today**, validated with real questions against a real
-4-document, 305-page corpus.
+14-document, 1,133-page corpus.
 
 **Repository:** `github.com/vaibhavkhuranaaa/legal-document-intelligence-rag`
 (currently **private**; safe to make public — no secrets are tracked, corpus
@@ -59,23 +59,23 @@ flagged the answer as ungrounded).
 
 | Layer | Status | Evidence |
 |---|---|---|
-| Ingestion pipeline | ✅ Complete, validated | 4/4 corpus documents processed, 0 failures, 2,438 elements extracted, real tables extracted |
+| Ingestion pipeline | ✅ Complete, validated | 14/14 public corpus documents processed, 0 failures |
 | Azure infrastructure | ✅ Provisioned, live | `rg-legal-rag-dev` (East US): `di-legal-rag-dev` (Document Intelligence, S0), `oai-legal-rag-dev` (Azure OpenAI, S0) with `gpt-5-mini` (10K TPM) and `text-embedding-3-small` (100K TPM) deployed |
-| Chunking + embeddings | ✅ Complete, validated | 390 chunks indexed from the real corpus |
+| Chunking + embeddings | ✅ Complete, validated | 1,468 chunks indexed from the real corpus |
 | Hybrid retrieval | ✅ Complete, validated | Chroma (vector) + BM25 (lexical), RRF-fused |
 | Grounded answering | ✅ Complete, validated live | Correct, well-cited answers on real legal questions; refusal path confirmed working |
 | Flask research workspace | ✅ Live | Research, Evidence, Corpus, Evaluation, and health routes on Azure App Service |
-| Tests / CI | ✅ 147 passing, lint clean | `uv run pytest`, `uv run ruff check .` |
+| Tests / CI | ✅ 150 passing, lint clean | `uv run pytest`, `uv run ruff check .` |
 | Production adapters | ✅ Implemented, unit-tested | Managed identity, Blob Storage, and Azure AI Search adapters |
-| Deployment infrastructure | 🟡 Nearly complete | Production resource group, identity, Storage, Blob container, AI Search, `legal-rag-chunks`, and 390 public chunks are live |
+| Deployment infrastructure | ✅ Release-ready | Production resource group, identity, Storage, Blob container, AI Search, and the 1,468-chunk public corpus are live |
 | App Service public host | ✅ Live | Flask/Gunicorn at the repository's public demo URL |
 | Parser v2 (outline state machine) | ❌ Not started | Current heading-style registry works but has known residual limitations (§6) |
-| Evaluation harness | ✅ Baseline recorded | `gold-qa-v1`: 25 questions, 100% retrieval hit rate@8 and citation-provenance validity against the 390-chunk production index |
+| Evaluation harness | ✅ Release recorded | `gold-qa-v2-delaware-expansion`: 45 questions, 100% retrieval hit rate@8 and citation-provenance validity against the 1,468-chunk production index |
 
 ## 4. Architecture At A Glance
 
 ```
-PDF corpus (public Delaware M&A litigation, 4 docs / 305 pages)
+PDF corpus (public Delaware M&A litigation, 14 docs / 1,133 pages)
   → Azure Document Intelligence (prebuilt-layout, S0)
   → adapter (sole Azure-SDK boundary; nothing downstream touches SDK types)
   → outline parser (heading-style registry; deterministic ambiguity warnings)
@@ -96,7 +96,7 @@ src/legal_rag/
 │                # outline parser → mapper → validation → storage → manifests
 ├── rag/         # chunking, embeddings, hybrid store, answer service, CLIs
 └── ui/          # Flask research workspace
-tests/           # 147 tests, no network calls, deterministic (fakes for Azure)
+tests/           # 150 tests, no network calls, deterministic (fakes for Azure)
 docs/            # this file, ADRs, roadmap, architecture review, product spec
 data/            # dataset_manifest.json (committed); raw/processed/failed (gitignored)
 ```
@@ -110,7 +110,7 @@ uv run legal-rag-ingest                                   # PDFs -> structured J
 uv run legal-rag-index                                    # chunk + embed + index
 uv run legal-rag-ask "your question"                      # CLI Q&A
 uv run flask --app legal_rag.ui.flask_app:app run --port 8503
-uv run pytest                                              # 147 tests
+uv run pytest                                              # 150 tests
 uv run ruff check .                                        # lint
 ```
 
@@ -127,12 +127,12 @@ uv run ruff check .                                        # lint
    pipeline); validated corpus is Delaware court opinions instead. Product
    scope now explicitly covers both; EDGAR ingestion is an approved,
    deferred future milestone (ADR-0011).
-3. **Evaluation scope is intentionally narrow.** `gold-qa-v1` validates
+3. **Evaluation scope is intentionally narrow.** `gold-qa-v2-delaware-expansion` validates
    retrieval coverage and citation provenance, not legal-answer correctness;
    expand to attorney-reviewed answer/citation correctness only in a dedicated
    later evaluation phase.
-4. **Production corpus is released.** `legal-rag-chunks` contains the approved
-   390 public chunks; future releases still need the operator workflow below.
+4. **Production corpus is released.** `legal-rag-chunks-r2` contains the
+   approved 1,468 public chunks; the prior 390-chunk index remains the rollback point.
 
 ## 7. How To Improve — Prioritized Roadmap
 

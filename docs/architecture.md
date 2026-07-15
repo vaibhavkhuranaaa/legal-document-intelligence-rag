@@ -76,6 +76,6 @@ available for development and deterministic tests.
 - Azure adapter layer: implemented and unit-tested. `DefaultAzureCredential`
   authentication, Blob-backed ingestion storage, and Azure AI Search hybrid
   retrieval are selected through typed settings.
-- Production Azure resources, Search index schema, RBAC, and a separately
-  staged 1,468-chunk expanded corpus index: provisioned and validated.
+- Production Azure resources, Search index schema, RBAC, and the promoted
+  1,468-chunk expanded corpus index: provisioned and live.
 - Flask/Gunicorn workspace: deployed and smoke-tested at the public host.
