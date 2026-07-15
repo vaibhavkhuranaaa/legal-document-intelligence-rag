@@ -6,12 +6,12 @@
   "summary": "Citation-grounded answers over public Delaware M&A litigation, built end-to-end on Azure.",
   "industries": ["Legal technology"],
   "categories": ["AI/ML", "Cloud"],
-  "stack": ["Python", "Azure Document Intelligence", "Azure OpenAI", "Azure AI Search", "Azure Blob Storage", "Streamlit"],
+  "stack": ["Python", "Flask", "Azure Document Intelligence", "Azure OpenAI", "Azure AI Search", "Azure Blob Storage"],
   "githubUrl": "https://github.com/vaibhavkhuranaaa/legal-document-intelligence-rag",
   "liveUrl": "https://app-legal-rag-prod-278f1d.azurewebsites.net/",
   "deployment": {"provider": "Azure", "status": "live", "runtime": "Azure App Service"},
   "metrics": ["139 deterministic tests", "390 approved public chunks", "Citation-required grounded generation"],
-  "stages": ["Public PDF ingestion", "Structure-aware chunking", "Hybrid retrieval", "Grounded generation", "Streamlit delivery", "Azure deployment"],
+  "stages": ["Public PDF ingestion", "Structure-aware chunking", "Hybrid retrieval", "Grounded generation", "Flask evidence workspace", "Azure deployment"],
   "architecture": ["PDF corpus", "Azure Document Intelligence", "Structured chunks", "Azure AI Search", "Azure OpenAI", "Cited response"],
   "disclaimer": "Uses public court opinions only. Legal information, not legal advice."
 }

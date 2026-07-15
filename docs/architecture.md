@@ -8,9 +8,8 @@ separate.
 
 The application is a public corpus research system over Delaware M&A litigation.
 Production uses managed identity, Azure OpenAI, and Azure AI Search; local
-development retains API-key/Chroma support. The live public host currently
-serves the Streamlit runtime. The repository also contains a verified Flask
-research-workspace candidate, which is intentionally not cut over yet.
+development retains API-key/Chroma support. The live public host serves the
+Flask/Gunicorn research workspace.
 
 ```text
 Public PDF corpus
@@ -79,5 +78,4 @@ available for development and deterministic tests.
   retrieval are selected through typed settings.
 - Production Azure resources, Search index schema, RBAC, and 390 approved
   chunks: provisioned and live.
-- Flask cutover: locally verified release candidate; deployment/startup-command
-  switch, Azure smoke test, and Streamlit retirement remain a separate approval.
+- Flask/Gunicorn workspace: deployed and smoke-tested at the public host.

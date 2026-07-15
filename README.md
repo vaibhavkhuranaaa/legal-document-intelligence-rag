@@ -41,7 +41,7 @@ cite retrieved passages or say the documents don't contain the answer.
 ## Evaluation
 
 The versioned 25-question `gold-qa-v1` benchmark was run against the current
-production candidate index on 2026-07-15. It recorded **100% retrieval hit
+production index on 2026-07-15. It recorded **100% retrieval hit
 rate@8** and **100% citation-provenance validity**. These metrics verify that
 expected source documents were retrieved and displayed citations have a valid
 HTTPS source, checksum, and page range; they are not a legal-accuracy claim.
@@ -94,7 +94,7 @@ uv run legal-rag-ingest                   # PDFs -> structured JSON (Azure DI)
 uv run legal-rag-index                    # chunk + embed + build hybrid index
 uv run legal-rag-ask "your question"      # grounded Q&A in the terminal
 
-uv run flask --app legal_rag.ui.flask_app:app run --port 8503  # Flask release candidate
+uv run flask --app legal_rag.ui.flask_app:app run --port 8503
 ```
 
 ## Development
@@ -110,11 +110,9 @@ Every push and PR to `main` runs lint + tests via GitHub Actions
 
 ## Deployment
 
-The live Azure App Service demo currently runs Streamlit with managed identity
-and Azure AI Search. A verified Flask research-workspace candidate is on this
-branch; it has not yet replaced the public runtime. See
-[docs/deployment.md](docs/deployment.md) for the runtime contract, data-release
-workflow, evaluation procedure, and cutover checks.
+The live Azure App Service demo runs the Flask/Gunicorn research workspace with
+managed identity and Azure AI Search. See [docs/deployment.md](docs/deployment.md)
+for the runtime contract, data-release workflow, and evaluation procedure.
 
 ## Project structure
 
@@ -125,7 +123,7 @@ src/legal_rag/
 │                 # manifests, structured logging
 ├── rag/          # chunking, embeddings, hybrid store (Chroma+BM25),
 │                 # grounded answer service, index/ask CLIs
-└── ui/           # Flask workspace and the temporary Streamlit runtime
+└── ui/           # Flask research workspace
 tests/            # unit + pipeline tests (fakes for Azure/storage)
 docs/             # ADRs, roadmap, phase summaries, architecture review
 data/             # dataset manifest (committed) + corpus/outputs (gitignored)

@@ -14,7 +14,7 @@ from legal_rag.rag.source_registry import SourceRegistry
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Evaluate the legal RAG release candidate")
+    parser = argparse.ArgumentParser(description="Evaluate the legal RAG production release")
     parser.add_argument("--gold", type=Path, default=Path("data/evaluation/gold_qa_v1.json"))
     parser.add_argument("--output", type=Path, default=Path("data/evaluation/latest.json"))
     parser.add_argument("--k", type=int, default=8)

@@ -64,14 +64,13 @@ flagged the answer as ungrounded).
 | Chunking + embeddings | ✅ Complete, validated | 390 chunks indexed from the real corpus |
 | Hybrid retrieval | ✅ Complete, validated | Chroma (vector) + BM25 (lexical), RRF-fused |
 | Grounded answering | ✅ Complete, validated live | Correct, well-cited answers on real legal questions; refusal path confirmed working |
-| Streamlit public runtime | ✅ Live | Current Azure App Service runtime; retained during Flask review |
-| Flask research workspace | 🟡 Local release candidate verified | Research, Evidence, Corpus, Evaluation, health routes; cutover pending |
+| Flask research workspace | ✅ Live | Research, Evidence, Corpus, Evaluation, and health routes on Azure App Service |
 | Tests / CI | ✅ 147 passing, lint clean | `uv run pytest`, `uv run ruff check .` |
 | Production adapters | ✅ Implemented, unit-tested | Managed identity, Blob Storage, and Azure AI Search adapters |
 | Deployment infrastructure | 🟡 Nearly complete | Production resource group, identity, Storage, Blob container, AI Search, `legal-rag-chunks`, and 390 public chunks are live |
-| App Service public host | ✅ Live | Streamlit at the repository's public demo URL; Flask cutover not yet performed |
+| App Service public host | ✅ Live | Flask/Gunicorn at the repository's public demo URL |
 | Parser v2 (outline state machine) | ❌ Not started | Current heading-style registry works but has known residual limitations (§6) |
-| Evaluation harness | ✅ Baseline recorded | `gold-qa-v1`: 25 questions, 100% retrieval hit rate@8 and citation-provenance validity against the 390-chunk candidate index |
+| Evaluation harness | ✅ Baseline recorded | `gold-qa-v1`: 25 questions, 100% retrieval hit rate@8 and citation-provenance validity against the 390-chunk production index |
 
 ## 4. Architecture At A Glance
 
@@ -86,7 +85,7 @@ PDF corpus (public Delaware M&A litigation, 4 docs / 305 pages)
   → Azure OpenAI embeddings (text-embedding-3-small)
   → hybrid retrieval: Chroma (dense) + BM25 (lexical), RRF-fused
   → grounded generation (gpt-5-mini; citation-required prompting)
-  → Streamlit public runtime / Flask release candidate / legal-rag-ask CLI
+  → Flask public research workspace / legal-rag-ask CLI
     (citations resolve to case/section/page/canonical source URL/checksum)
 ```
 
@@ -96,7 +95,7 @@ src/legal_rag/
 ├── ingestion/   # discovery → normalization → Azure DI client + adapter →
 │                # outline parser → mapper → validation → storage → manifests
 ├── rag/         # chunking, embeddings, hybrid store, answer service, CLIs
-└── ui/          # Flask workspace + temporary Streamlit runtime
+└── ui/          # Flask research workspace
 tests/           # 147 tests, no network calls, deterministic (fakes for Azure)
 docs/            # this file, ADRs, roadmap, architecture review, product spec
 data/            # dataset_manifest.json (committed); raw/processed/failed (gitignored)
@@ -132,10 +131,7 @@ uv run ruff check .                                        # lint
    retrieval coverage and citation provenance, not legal-answer correctness;
    expand to attorney-reviewed answer/citation correctness only in a dedicated
    later evaluation phase.
-4. **Flask is not live yet.** The existing Streamlit host remains public until
-   the Flask deployment, health check, evidence-link check, benchmark, and
-   smoke test are approved.
-5. **Production corpus is released.** `legal-rag-chunks` contains the approved
+4. **Production corpus is released.** `legal-rag-chunks` contains the approved
    390 public chunks; future releases still need the operator workflow below.
 
 ## 7. How To Improve — Prioritized Roadmap
@@ -143,24 +139,21 @@ uv run ruff check .                                        # lint
 Full detail and reasoning: `docs/ARCHITECTURE_REVIEW.md` §14. Summary,
 highest-value first:
 
-1. **Flask cutover.** The source check and `gold-qa-v1` Azure benchmark passed;
-   replace the App Service startup command without changing the public URL,
-   verify all public routes, then retire the Streamlit runtime in a follow-up.
-2. **Parser v2: outline state machine.** Replaces style-name matching with
+1. **Parser v2: outline state machine.** Replaces style-name matching with
    per-branch enumerator-value tracking and successor prediction. Fixes both
    known residual limitations (§6.1). Pure-logic change, no schema impact,
    moderate effort (see `ARCHITECTURE_REVIEW.md` §8 for the exact design).
-3. **Carry Azure DI `spans` through the adapter.** Currently reading order
+2. **Carry Azure DI `spans` through the adapter.** Currently reading order
    is inferred by y-coordinate sort because span offsets are discarded on
    ingestion — carrying them through gives exact reading order and an exact
    text anchor per element for free (useful for future citation
    highlighting). Small, additive schema extension.
-4. **Ingest real SEC EDGAR transaction documents** (ADR-0011) — extends the
+3. **Ingest real SEC EDGAR transaction documents** (ADR-0011) — extends the
    corpus to match the original product vision (merger agreements, S-4s),
    not just litigation about mergers. Requires an HTML→structured-content
    path (two designed options in ADR-0011: convert-to-PDF vs. native HTML
    parser feeding the existing `RawDocument` model).
-5. **Secure user-upload eDiscovery workflow.** Requires authenticated
+4. **Secure user-upload eDiscovery workflow.** Requires authenticated
    workspaces, private Blob storage, malware scanning, asynchronous ingestion,
    user-scoped retrieval, quotas, retention/deletion, and audit logging.
 6. **Smaller, opportunistic items:** raise the reasoning-token budget
@@ -203,10 +196,9 @@ don't undo them while improving things:
 
 ## 10. Verification
 
-This file's claims were checked against live state on the date of writing:
-`git log`, `uv run pytest` (147 passed), `uv run ruff check .`, and a local
-Flask browser smoke test. Azure production has the public Streamlit App Service,
-managed identity, private Blob container, Basic AI Search service, production
-Search index, and 390 published chunks. The next operator action is a deliberate
-Flask cutover, not recovery of the original deployment. Re-run these checks
-rather than trusting this table blindly — it is a snapshot, not a live view.
+This file's claims were checked against live state on 2026-07-15: `git log`,
+`uv run pytest` (147 passed), `uv run ruff check .`, and Flask browser/Azure
+smoke tests. Azure production has the public Flask App Service, managed identity,
+private Blob container, Basic AI Search service, production Search index, and
+390 published chunks. Re-run these checks rather than trusting this table
+blindly — it is a snapshot, not a live view.

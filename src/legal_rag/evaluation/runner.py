@@ -41,7 +41,7 @@ def evaluate(service: AnswerService, dataset: GoldDataset, *, k: int = 8) -> Eva
             citation_provenance_validity=valid_citation_questions / question_count,
         ),
         note=(
-            "Results are generated against the configured production candidate index. "
+            "Results are generated against the configured production index. "
             "They are not a legal-accuracy claim or legal advice."
         ),
     )
