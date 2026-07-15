@@ -103,7 +103,7 @@ uv run flask --app legal_rag.ui.flask_app:app run --port 8503
 ## Development
 
 ```bash
-uv run pytest          # 154 tests, no network calls, deterministic
+uv run pytest          # 156 tests, no network calls, deterministic
 uv run ruff check .    # lint
 uv run ruff format .   # format
 ```

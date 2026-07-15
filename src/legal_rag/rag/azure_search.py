@@ -38,6 +38,7 @@ class AzureAISearchStore(RetrievalBackend):
         *,
         endpoint: str,
         index_name: str,
+        source_locations_enabled: bool = False,
         search_client: SearchClient | None = None,
     ) -> None:
         self._search_client = search_client or SearchClient(
@@ -45,13 +46,22 @@ class AzureAISearchStore(RetrievalBackend):
             index_name=index_name,
             credential=DefaultAzureCredential(),
         )
+        self._source_locations_enabled = source_locations_enabled
+
+    @property
+    def _select_fields(self) -> list[str]:
+        location_fields = ["source_anchor", "source_start", "source_end"]
+        if self._source_locations_enabled:
+            return [*_SELECT_FIELDS, *location_fields]
+        return _SELECT_FIELDS
 
     def index(self, chunks: list[Chunk], vectors: list[list[float]]) -> None:
         if len(chunks) != len(vectors):
             raise ValueError("chunks and vectors must be the same length")
         self._delete_all()
         documents = [
-            self._to_document(chunk, vector) for chunk, vector in zip(chunks, vectors, strict=True)
+            self._to_document(chunk, vector, self._source_locations_enabled)
+            for chunk, vector in zip(chunks, vectors, strict=True)
         ]
         for batch in _batches(documents, _BATCH_SIZE):
             results = self._search_client.upload_documents(documents=batch)
@@ -69,7 +79,7 @@ class AzureAISearchStore(RetrievalBackend):
         results = self._search_client.search(
             search_text=query_text,
             vector_queries=[vector_query],
-            select=_SELECT_FIELDS,
+            select=self._select_fields,
             top=k,
         )
         return [
@@ -90,8 +100,8 @@ class AzureAISearchStore(RetrievalBackend):
                 raise RuntimeError("Azure AI Search could not clear the existing index")
 
     @staticmethod
-    def _to_document(chunk: Chunk, vector: list[float]) -> dict:
-        return {
+    def _to_document(chunk: Chunk, vector: list[float], source_locations_enabled: bool) -> dict:
+        document = {
             "chunk_id": chunk.chunk_id,
             "document_id": chunk.document_id,
             "document_title": chunk.document_title,
@@ -104,6 +114,15 @@ class AzureAISearchStore(RetrievalBackend):
             "embed_text": chunk.embed_text,
             _VECTOR_FIELD: vector,
         }
+        if source_locations_enabled:
+            document.update(
+                {
+                    "source_anchor": chunk.source_anchor,
+                    "source_start": chunk.source_start,
+                    "source_end": chunk.source_end,
+                }
+            )
+        return document
 
     @staticmethod
     def _to_chunk(result: dict) -> Chunk:
@@ -114,6 +133,9 @@ class AzureAISearchStore(RetrievalBackend):
             section_path=result["section_path"],
             page_start=result["page_start"],
             page_end=result["page_end"],
+            source_anchor=result.get("source_anchor"),
+            source_start=result.get("source_start"),
+            source_end=result.get("source_end"),
             element_ids=result["element_ids"],
             chunk_type=result["chunk_type"],
             text=result["text"],

@@ -96,7 +96,7 @@ execution can be added only after its release identity/credentials are scoped.
 
 ## Phase 5B — Native SEC EDGAR merger-filing ingestion
 
-Status: **In progress — parser and provenance foundation validated; publication gated**
+Status: **Ready for controlled publication — parser/citation gate passed**
 
 - The native HTML parser, rate-limited explicit-URL SEC client, immutable
   SEC filing metadata, and source-kind-aware citations are implemented and
@@ -104,7 +104,19 @@ Status: **In progress — parser and provenance foundation validated; publicatio
 - Six official EX-2.1 merger agreements were fetched once with a declared SEC
   User-Agent solely to validate parsing. They are not registered, indexed, or
   visible in production yet.
-- Release gate: the sampled official filings have no stable DOM `id`/`name`
-  fragment anchors. Phase 6 must preserve a truthful heading/span locator and
-  never append an unresolvable fragment to an official URL before this source
-  family can be published.
+- The sampled official filings have no stable DOM `id`/`name` fragments.
+  Phase 6 now preserves a truthful visible-heading plus text-span locator and
+  never appends an unresolvable fragment to an official URL.
+
+## Phase 6 — Parser and citation accuracy
+
+Status: **Complete — local release gates validated**
+
+- PDF extraction retains Azure Document Intelligence character spans; native
+  SEC HTML retains deterministic text offsets. Both flow through chunks,
+  Azure Search payloads, citations, and the evidence UI.
+- Outline reconstruction now tracks expected `ARTICLE` and decimal-heading
+  successors within each parent branch and records explicit warnings on gaps.
+- Semantic validation blocks incomplete/invalid spans, duplicate section IDs,
+  malformed heading paths, orphaned sections, duplicate SEC heading anchors,
+  and incomplete SEC provenance.

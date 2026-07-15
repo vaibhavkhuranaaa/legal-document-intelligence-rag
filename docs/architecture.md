@@ -48,6 +48,9 @@ request never performs ingestion, embedding, or index mutation.
   together. Court PDFs retain page ranges; SEC HTML never makes a page claim.
 - The Flask Evidence explorer displays that provenance without trusting model-
   composed citations.
+- Native spans flow from the PDF/HTML extraction layer through chunks and Azure
+  Search. SEC evidence uses a visible heading and deterministic text-offset
+  locator when EDGAR has no stable deep-link fragment.
 - `data/evaluation/gold_qa_v2.json` contains the versioned 45-question gold
   benchmark across the 14-opinion public corpus. `legal-rag-evaluate` is an explicit, Azure-backed release check;
   only its recorded aggregate results may be displayed publicly.

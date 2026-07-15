@@ -9,7 +9,7 @@
 <div class="evidence-list">
 {% for match in matches %}
   <article class="evidence-card expanded" id="evidence-{{ match.citation.marker }}">
-    <div class="evidence-meta"><span>Passage {{ match.citation.marker }}</span><span>{{ match.citation|pages }}</span><span><strong>Retrieval match {{ match.score }}/100</strong> · {{ match.tier }}</span></div>
+    <div class="evidence-meta"><span>Passage {{ match.citation.marker }}</span><span>{{ match.citation|source_location }}</span><span><strong>Retrieval match {{ match.score }}/100</strong> · {{ match.tier }}</span></div>
     <h2>{{ match.citation.document_title }}</h2>
     <p class="section-path">{{ match.citation.section_path|join(' › ') if match.citation.section_path else "Document body" }}</p>
     <blockquote>{{ match.result.chunk.text }}</blockquote>

@@ -12,5 +12,6 @@ def build_retrieval_backend(settings: RagSettings) -> RetrievalBackend:
         return AzureAISearchStore(
             endpoint=settings.azure_search_endpoint,
             index_name=settings.azure_search_index_name,
+            source_locations_enabled=settings.azure_search_source_locations_enabled,
         )
     return ChromaHybridStore(str(settings.chroma_persist_dir))

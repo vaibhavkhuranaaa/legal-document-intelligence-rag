@@ -28,6 +28,7 @@ class RagSettings(BaseSettings):
     retrieval_backend: Literal["chroma", "azure_ai_search"] = "chroma"
     azure_search_endpoint: str | None = None
     azure_search_index_name: str | None = None
+    azure_search_source_locations_enabled: bool = False
 
     chunk_max_chars: int = 1800
     retrieval_top_k: int = 8

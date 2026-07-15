@@ -96,6 +96,15 @@ def create_app(
             else f"pp. {citation.page_start}–{citation.page_end}"
         )
 
+    @app.template_filter("source_location")
+    def format_source_location(citation: Citation) -> str:
+        if citation.source_kind == "court_pdf":
+            return format_pages(citation)
+        section = citation.section_path[-1] if citation.section_path else "HTML filing section"
+        if citation.source_start is not None and citation.source_end is not None:
+            return f"{section} · text offsets {citation.source_start}–{citation.source_end}"
+        return section
+
     def render_home(*, answer: Answer | None = None, error: str | None = None, question: str = ""):
         try:
             chunk_count = workspace.chunk_count()

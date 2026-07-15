@@ -63,6 +63,7 @@ _ROMAN_UPPER_PATTERN = re.compile(r"^([IVXLCDM]+)\.\s")
 _LETTER_UPPER_PATTERN = re.compile(r"^([A-Z])\.\s")
 _LETTER_LOWER_PATTERN = re.compile(r"^([a-z])\.\s")
 _ROMAN_LOWER_PATTERN = re.compile(r"^([ivxlcdm]+)\.\s")
+_ARTICLE_NUMBER_PATTERN = re.compile(r"^ARTICLE\s+([IVXLCDM]+)\b", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -119,6 +120,50 @@ class _DepthResolution:
     depth: int
     styles: frozenset[str]
     warning: str | None = None
+
+
+def _roman_to_int(value: str) -> int:
+    values = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100, "D": 500, "M": 1000}
+    total = 0
+    previous = 0
+    for character in reversed(value.upper()):
+        current = values[character]
+        total += -current if current < previous else current
+        previous = max(previous, current)
+    return total
+
+
+def _sequence_token(text: str) -> tuple[str, tuple[int, ...], int] | None:
+    """Return a branch-scoped numeric heading token when it is unambiguous."""
+    article = _ARTICLE_NUMBER_PATTERN.match(text)
+    if article:
+        return ("article", (), _roman_to_int(article.group(1)))
+    decimal = _DECIMAL_PATTERN.match(text)
+    if decimal:
+        values = tuple(int(value) for value in decimal.group(1).split("."))
+        return ("decimal", values[:-1], values[-1])
+    return None
+
+
+def _successor_warning(
+    text: str,
+    *,
+    parent_path: list[str],
+    next_values: dict[tuple[tuple[str, ...], str, tuple[int, ...]], int],
+) -> str | None:
+    token = _sequence_token(text)
+    if token is None:
+        return None
+    style, branch, current = token
+    key = (tuple(parent_path), style, branch)
+    expected = next_values.get(key)
+    next_values[key] = current + 1
+    if expected is not None and current != expected:
+        return (
+            f"unexpected heading successor for {text!r}: expected {expected}, found {current} "
+            f"within branch {'.'.join(map(str, branch)) or 'root'}"
+        )
+    return None
 
 
 def _min_y(regions: list[BoundingRegion]) -> float:
@@ -217,6 +262,8 @@ def _open_section(
     page_number: int,
     styles: frozenset[str],
     source_anchor: str | None,
+    source_start: int | None,
+    source_end: int | None,
 ) -> Section:
     while stack and stack[-1].depth >= depth:
         stack.pop()
@@ -233,6 +280,8 @@ def _open_section(
         page_number=page_number,
         path=path,
         source_anchor=source_anchor,
+        source_start=source_start,
+        source_end=source_end,
     )
     if parent:
         parent.children.append(section)
@@ -248,6 +297,7 @@ def build_structure(document: RawDocument) -> DocumentStructure:
     warnings: list[str] = []
     stack: list[_OpenSection] = []
     next_element_id = 1
+    next_heading_values: dict[tuple[tuple[str, ...], str, tuple[int, ...]], int] = {}
 
     for item in _build_reading_order(document):
         section_path = stack[-1].section.path if stack else []
@@ -267,6 +317,18 @@ def build_structure(document: RawDocument) -> DocumentStructure:
                 )
                 if resolution.warning:
                     warnings.append(resolution.warning)
+                parent_path = []
+                for open_section in reversed(stack):
+                    if open_section.depth < resolution.depth:
+                        parent_path = open_section.section.path
+                        break
+                successor_warning = _successor_warning(
+                    paragraph.text,
+                    parent_path=parent_path,
+                    next_values=next_heading_values,
+                )
+                if successor_warning:
+                    warnings.append(successor_warning)
                 section = _open_section(
                     stack=stack,
                     structure=structure,
@@ -275,6 +337,8 @@ def build_structure(document: RawDocument) -> DocumentStructure:
                     page_number=paragraph.page_number,
                     styles=resolution.styles,
                     source_anchor=paragraph.source_anchor,
+                    source_start=paragraph.source_start,
+                    source_end=paragraph.source_end,
                 )
                 section.content.append(element_id)
                 elements.append(
@@ -284,6 +348,8 @@ def build_structure(document: RawDocument) -> DocumentStructure:
                         section_path=section.path,
                         bounding_regions=paragraph.bounding_regions,
                         source_anchor=paragraph.source_anchor,
+                        source_start=paragraph.source_start,
+                        source_end=paragraph.source_end,
                         text=paragraph.text,
                     )
                 )
@@ -297,6 +363,8 @@ def build_structure(document: RawDocument) -> DocumentStructure:
                         section_path=section_path,
                         bounding_regions=paragraph.bounding_regions,
                         source_anchor=stack[-1].section.source_anchor if stack else None,
+                        source_start=paragraph.source_start,
+                        source_end=paragraph.source_end,
                         text=paragraph.text,
                     )
                 )
@@ -312,7 +380,10 @@ def build_structure(document: RawDocument) -> DocumentStructure:
                     element_id=element_id,
                     page_number=table.page_number,
                     section_path=section_path,
-                    bounding_regions=table.bounding_regions,
+                bounding_regions=table.bounding_regions,
+                source_anchor=table.source_anchor,
+                source_start=table.source_start,
+                source_end=table.source_end,
                     row_count=table.row_count,
                     column_count=table.column_count,
                     cells=[

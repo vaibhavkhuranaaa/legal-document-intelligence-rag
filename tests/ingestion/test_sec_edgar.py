@@ -4,6 +4,7 @@ from legal_rag.ingestion.sec_edgar import (
     parse_edgar_html,
     to_sec_document_record,
 )
+from legal_rag.ingestion.validation import validate
 from legal_rag.rag.chunking import chunk_document
 
 _FILING = SecFilingInput(
@@ -29,6 +30,8 @@ def test_native_html_parser_preserves_heading_anchor_table_and_malformed_tail() 
     assert raw.paragraphs[0].role == "sectionHeading"
     assert raw.paragraphs[0].source_anchor == "article-one"
     assert raw.paragraphs[-1].text == "Closing condition"
+    assert raw.paragraphs[-1].source_start is not None
+    assert raw.paragraphs[-1].source_end is not None
     assert raw.tables[0].row_count == 2
     assert raw.tables[0].cells[-1].text == "0.2"
 
@@ -45,6 +48,8 @@ def test_sec_record_is_chunkable_and_retains_immutable_filing_provenance() -> No
     assert record.source.sec_metadata.accession_number == _FILING.accession_number
     chunks = chunk_document(record, title="Example merger agreement")
     assert chunks[0].source_anchor == "article-one"
+    assert chunks[0].source_start is not None
+    assert validate(record).is_valid is True
 
 
 def test_sec_client_requires_a_declared_contact_identity() -> None:

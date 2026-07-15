@@ -28,7 +28,7 @@
   <div class="evidence-grid">
     {% for citation in answer.citations %}
     <article class="evidence-card">
-      <p class="source-marker">[{{ citation.marker }}] {{ citation|pages }}</p>
+      <p class="source-marker">[{{ citation.marker }}] {{ citation|source_location }}</p>
       <h4>{{ citation.document_title }}</h4>
       <p class="section-path">{{ citation.section_path|join(' › ') if citation.section_path else "Document body" }}</p>
       <p>{{ citation.snippet }}</p>

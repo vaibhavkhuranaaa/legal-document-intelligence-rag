@@ -113,4 +113,6 @@ class AnswerService:
             source_kind=source_kind,
             source_anchor=c.source_anchor,
             accession_number=source.accession_number if source else None,
+            source_start=c.source_start,
+            source_end=c.source_end,
         )

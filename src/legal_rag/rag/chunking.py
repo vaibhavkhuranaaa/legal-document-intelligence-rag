@@ -51,6 +51,7 @@ class _ChunkBuilder:
         self._element_ids: list[str] = []
         self._pages: list[int] = []
         self._source_anchors: list[str] = []
+        self._source_spans: list[tuple[int, int]] = []
 
     def _flush(self) -> None:
         if not self._texts:
@@ -65,13 +66,21 @@ class _ChunkBuilder:
                 page_start=min(self._pages),
                 page_end=max(self._pages),
                 source_anchor=next(iter(self._source_anchors), None),
+                source_start=min((start for start, _ in self._source_spans), default=None),
+                source_end=max((end for _, end in self._source_spans), default=None),
                 element_ids=list(self._element_ids),
                 chunk_type="text",
                 text=text,
                 embed_text=_embed_text(self._title, self._section_path, text),
             )
         )
-        self._texts, self._element_ids, self._pages, self._source_anchors = [], [], [], []
+        self._texts, self._element_ids, self._pages, self._source_anchors, self._source_spans = (
+            [],
+            [],
+            [],
+            [],
+            [],
+        )
 
     def add_paragraph(
         self,
@@ -81,6 +90,8 @@ class _ChunkBuilder:
         page: int,
         path: list[str],
         source_anchor: str | None,
+        source_start: int | None,
+        source_end: int | None,
     ) -> None:
         if _is_footnote_marker(text):
             return
@@ -95,6 +106,8 @@ class _ChunkBuilder:
         self._pages.append(page)
         if source_anchor:
             self._source_anchors.append(source_anchor)
+        if source_start is not None and source_end is not None:
+            self._source_spans.append((source_start, source_end))
 
     def add_table(self, table: TableElement) -> None:
         self._flush()
@@ -111,6 +124,8 @@ class _ChunkBuilder:
                 page_start=table.page_number,
                 page_end=table.page_number,
                 source_anchor=table.source_anchor,
+                source_start=table.source_start,
+                source_end=table.source_end,
                 element_ids=[table.element_id],
                 chunk_type="table",
                 text=text,
@@ -134,6 +149,8 @@ def chunk_document(record: DocumentRecord, *, title: str, max_chars: int = 1800)
                 page=element.page_number,
                 path=element.section_path,
                 source_anchor=element.source_anchor,
+                source_start=element.source_start,
+                source_end=element.source_end,
             )
         elif element.type == "table":
             builder.add_table(element)

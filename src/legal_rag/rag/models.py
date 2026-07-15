@@ -28,6 +28,8 @@ class Chunk(BaseModel):
     page_start: int
     page_end: int
     source_anchor: str | None = None
+    source_start: int | None = None
+    source_end: int | None = None
     element_ids: list[str]
     chunk_type: Literal["text", "table"]
     text: str
@@ -54,6 +56,8 @@ class Citation(BaseModel):
     source_kind: Literal["court_pdf", "sec_html"] = "court_pdf"
     source_anchor: str | None = None
     accession_number: str | None = None
+    source_start: int | None = None
+    source_end: int | None = None
 
     @property
     def display(self) -> str:

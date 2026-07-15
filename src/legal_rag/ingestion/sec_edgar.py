@@ -49,6 +49,8 @@ class _Capture:
     tag: str
     anchor: str | None
     parts: list[str] = field(default_factory=list)
+    source_start: int | None = None
+    source_end: int | None = None
 
 
 class _EdgarHtmlParser(HTMLParser):
@@ -62,8 +64,11 @@ class _EdgarHtmlParser(HTMLParser):
         self._captures: list[_Capture] = []
         self._table_anchor: str | None = None
         self._table_rows: list[list[str]] = []
+        self._table_start: int | None = None
+        self._table_end: int | None = None
         self._row: list[str] | None = None
         self._cell_parts: list[str] | None = None
+        self._text_offset = 0
 
     @staticmethod
     def _anchor(attrs: list[tuple[str, str | None]]) -> str | None:
@@ -79,6 +84,8 @@ class _EdgarHtmlParser(HTMLParser):
         elif tag == "table":
             self._table_anchor = anchor
             self._table_rows = []
+            self._table_start = None
+            self._table_end = None
         elif tag == "tr" and self._table_anchor is not None:
             self._row = []
         elif tag in {"td", "th"} and self._row is not None:
@@ -86,9 +93,17 @@ class _EdgarHtmlParser(HTMLParser):
 
     def handle_data(self, data: str) -> None:
         for capture in self._captures:
+            if capture.source_start is None:
+                capture.source_start = self._text_offset
             capture.parts.append(data)
+            capture.source_end = self._text_offset + len(data)
         if self._cell_parts is not None:
             self._cell_parts.append(data)
+        if self._table_anchor is not None:
+            if self._table_start is None:
+                self._table_start = self._text_offset
+            self._table_end = self._text_offset + len(data)
+        self._text_offset += len(data)
 
     def handle_endtag(self, tag: str) -> None:
         tag = tag.lower()
@@ -130,7 +145,14 @@ class _EdgarHtmlParser(HTMLParser):
             else RawParagraphRole.TEXT
         )
         self.paragraphs.append(
-            RawParagraph(text=text, role=role, page_number=1, source_anchor=capture.anchor)
+            RawParagraph(
+                text=text,
+                role=role,
+                page_number=1,
+                source_anchor=capture.anchor,
+                source_start=capture.source_start,
+                source_end=capture.source_end,
+            )
         )
 
     def _emit_table(self) -> None:
@@ -148,6 +170,9 @@ class _EdgarHtmlParser(HTMLParser):
                 row_count=len(self._table_rows),
                 column_count=width,
                 cells=cells,
+                source_anchor=self._table_anchor,
+                source_start=self._table_start,
+                source_end=self._table_end,
             )
         )
 
