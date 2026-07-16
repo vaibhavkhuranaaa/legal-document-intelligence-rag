@@ -99,6 +99,16 @@ uv run legal-rag-evaluate --gold data/evaluation/gold_qa_v2.json \
   --output /private/tmp/legal-rag-r3-phase61-evaluation.json
 ```
 
+## Paced r3 evaluation result (2026-07-16)
+
+- The paced benchmark completed without an Azure 429. It recorded 100%
+  retrieval hit rate@8 (45/45) but only 28.9% citation-provenance validity
+  (13/45). This fails the release evaluation gate; do not promote r3.
+- The completion cap/pacing solved the infrastructure throttling but altered
+  answer-generation behavior enough to invalidate the prior provenance metric.
+  Investigate the missing citations before choosing a release-evaluation
+  configuration or promoting the staged index.
+
 ## Do not do
 
 - Do not promote r3, change the live app index, or publish SEC sources yet.

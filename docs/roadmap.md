@@ -150,3 +150,6 @@ Status: **Complete locally — staged Azure release remains blocked**
   times. The pending retry uses an evaluation-only 800-token completion cap,
   30-second chat pacing, and server-guided 429 retries; it does not change the
   public application settings. Do not promote until the benchmark succeeds.
+- The paced retry completed without 429s and achieved 100% retrieval hit
+  rate@8, but citation-provenance validity fell to 28.9% (13/45). The staged
+  release remains blocked pending investigation of the citation regression.
