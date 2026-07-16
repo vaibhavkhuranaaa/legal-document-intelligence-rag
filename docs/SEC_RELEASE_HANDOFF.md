@@ -55,6 +55,10 @@ AZURE_SEARCH_INDEX_NAME=legal-rag-chunks-r3 \
 AZURE_SEARCH_SOURCE_LOCATIONS_ENABLED=true \
 uv run legal-rag-index \
   --embedding-checkpoint /private/tmp/legal-rag-r3-phase61-embeddings.json.gz
+
+# Requires the operator's real organization/contact identity; never invent one.
+uv run legal-rag-validate-corpus --check-urls \
+  --sec-user-agent "Organization contact@example.com"
 ```
 
 Before any promotion, confirm the clean r3 build, run the Azure-backed

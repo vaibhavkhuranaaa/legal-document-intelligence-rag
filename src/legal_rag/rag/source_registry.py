@@ -93,13 +93,29 @@ class SourceRegistry:
         for document_id in document_ids:
             self.require(document_id)
 
-    def verify_source_urls(self, *, timeout_seconds: float = 15.0) -> None:
+    def verify_source_urls(
+        self, *, timeout_seconds: float = 15.0, sec_user_agent: str | None = None
+    ) -> None:
         """Fail when a canonical public source no longer responds successfully.
 
         This is an operator release check, deliberately not a web-request dependency.
         """
         for document in self._documents:
-            request = Request(document.source_url, method="HEAD")  # noqa: S310
+            if document.source_kind == "sec_html" and not sec_user_agent:
+                raise ValueError("SEC URL verification requires a declared SEC User-Agent")
+            headers = (
+                {"User-Agent": sec_user_agent, "Range": "bytes=0-0"}
+                if document.source_kind == "sec_html"
+                else {}
+            )
+            # SEC's fair-access policy expects a declared contact identity and
+            # may reject anonymous HEAD requests. A one-byte GET verifies the
+            # official filing without downloading it or crawling EDGAR.
+            request = Request(  # noqa: S310
+                document.source_url,
+                headers=headers,
+                method="GET" if document.source_kind == "sec_html" else "HEAD",
+            )
             try:
                 with urlopen(request, timeout=timeout_seconds) as response:  # noqa: S310
                     if response.status >= 400:
@@ -167,10 +183,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate the public legal-corpus registry")
     parser.add_argument("--manifest", type=Path, default=Path("data/dataset_manifest.json"))
     parser.add_argument("--check-urls", action="store_true")
+    parser.add_argument(
+        "--sec-user-agent",
+        help="declared organization and contact email for SEC URL verification",
+    )
     args = parser.parse_args(argv)
     registry = SourceRegistry.load(args.manifest)
     if args.check_urls:
-        registry.verify_source_urls()
+        registry.verify_source_urls(sec_user_agent=args.sec_user_agent)
     digest = hashlib.sha256(args.manifest.read_bytes()).hexdigest()[:12]
     print(f"Validated {len(registry.documents)} public sources (manifest {digest}).")
     return 0
