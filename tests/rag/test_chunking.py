@@ -1,5 +1,7 @@
 from datetime import UTC, datetime
 
+import pytest
+
 from legal_rag.ingestion.models import (
     DocumentRecord,
     Element,
@@ -11,7 +13,7 @@ from legal_rag.ingestion.models import (
     TableCell,
     TableElement,
 )
-from legal_rag.rag.chunking import chunk_document
+from legal_rag.rag.chunking import MAX_EMBED_TEXT_CHARS, chunk_document, validate_embedding_payloads
 
 
 def _record(elements: list[Element], page_count: int = 3) -> DocumentRecord:
@@ -150,3 +152,11 @@ def test_page_range_spans_grouped_paragraphs() -> None:
 
     assert chunks[0].page_start == 1
     assert chunks[0].page_end == 2
+
+
+def test_embedding_payload_guard_rejects_malformed_oversized_chunk() -> None:
+    record = _record([_para("p1", "x" * MAX_EMBED_TEXT_CHARS, path=["I. TERMS"])])
+    chunks = chunk_document(record, title="Case A")
+
+    with pytest.raises(ValueError, match="embedding payload release gate failed"):
+        validate_embedding_payloads(chunks)

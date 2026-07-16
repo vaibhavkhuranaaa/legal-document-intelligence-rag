@@ -18,6 +18,11 @@ Strategy (per the architecture review, §9):
 from legal_rag.ingestion.models import DocumentRecord, TableElement
 from legal_rag.rag.models import Chunk
 
+# The approved PDF corpus peaks at 3,606 embedding characters. This release
+# guard leaves room for titles and legal section paths, but blocks malformed
+# HTML captures before they become costly Azure embedding requests.
+MAX_EMBED_TEXT_CHARS = 8_000
+
 
 def _is_footnote_marker(text: str) -> bool:
     stripped = text.strip()
@@ -156,3 +161,15 @@ def chunk_document(record: DocumentRecord, *, title: str, max_chars: int = 1800)
             builder.add_table(element)
         # headings contribute via section_path, not chunk text
     return builder.finish()
+
+
+def validate_embedding_payloads(chunks: list[Chunk]) -> None:
+    """Reject malformed chunks before they reach an embedding deployment."""
+    oversized = [chunk for chunk in chunks if len(chunk.embed_text) > MAX_EMBED_TEXT_CHARS]
+    if oversized:
+        largest = max(oversized, key=lambda chunk: len(chunk.embed_text))
+        raise ValueError(
+            "embedding payload release gate failed: "
+            f"{len(oversized)} chunk(s) exceed {MAX_EMBED_TEXT_CHARS} characters; "
+            f"largest is {largest.chunk_id} at {len(largest.embed_text)} characters"
+        )

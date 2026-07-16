@@ -36,6 +36,19 @@ def test_native_html_parser_preserves_heading_anchor_table_and_malformed_tail() 
     assert raw.tables[0].cells[-1].text == "0.2"
 
 
+def test_native_html_parser_applies_implied_block_closure() -> None:
+    raw = parse_edgar_html(
+        b'<p id="section">Section 1. Terms<p id="body">Ordinary agreement text.</p>'
+    )
+
+    assert [paragraph.text for paragraph in raw.paragraphs] == [
+        "Section 1. Terms",
+        "Ordinary agreement text.",
+    ]
+    assert raw.paragraphs[0].role == "sectionHeading"
+    assert raw.paragraphs[1].role == "text"
+
+
 def test_sec_record_is_chunkable_and_retains_immutable_filing_provenance() -> None:
     record = to_sec_document_record(
         filing=_FILING,

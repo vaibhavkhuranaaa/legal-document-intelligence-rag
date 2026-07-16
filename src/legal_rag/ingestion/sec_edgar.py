@@ -79,13 +79,23 @@ class _EdgarHtmlParser(HTMLParser):
         inherited_anchor = next((item for item in reversed(self._anchors) if item), None)
         anchor = self._anchor(attrs) or inherited_anchor
         self._anchors.append(self._anchor(attrs))
-        if tag in _BLOCK_TAGS:
-            self._captures.append(_Capture(tag=tag, anchor=anchor))
-        elif tag == "table":
+        if tag == "table":
+            # SEC HTML is frequently malformed: an earlier <p> may not have
+            # an end tag. A table necessarily ends a textual block, so close
+            # it before collecting the table rather than letting it absorb
+            # the rest of the agreement.
+            self._close_open_capture()
             self._table_anchor = anchor
             self._table_rows = []
             self._table_start = None
             self._table_end = None
+        elif tag in _BLOCK_TAGS and self._table_anchor is None:
+            # Captured block tags cannot meaningfully nest for retrieval.
+            # HTMLParser deliberately does not apply browser implied-end-tag
+            # rules, so an unclosed <p> otherwise stays active and collects
+            # every subsequent text node in an EDGAR filing.
+            self._close_open_capture()
+            self._captures.append(_Capture(tag=tag, anchor=anchor))
         elif tag == "tr" and self._table_anchor is not None:
             self._row = []
         elif tag in {"td", "th"} and self._row is not None:
@@ -134,6 +144,10 @@ class _EdgarHtmlParser(HTMLParser):
         for capture in self._captures:
             self._emit_paragraph(capture)
         self._captures.clear()
+
+    def _close_open_capture(self) -> None:
+        if self._captures:
+            self._emit_paragraph(self._captures.pop())
 
     def _emit_paragraph(self, capture: _Capture) -> None:
         text = " ".join("".join(capture.parts).split())

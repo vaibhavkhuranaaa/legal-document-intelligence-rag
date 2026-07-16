@@ -78,7 +78,12 @@ def test_corpus_exposes_each_registered_official_source() -> None:
     page = _client().get("/corpus")
 
     assert page.status_code == 200
-    assert page.data.count(b"Open canonical court PDF") == len(registry.documents)
+    assert page.data.count(b"Open canonical court PDF") == sum(
+        document.source_kind == "court_pdf" for document in registry.documents
+    )
+    assert page.data.count(b"Open official filing") == sum(
+        document.source_kind == "sec_html" for document in registry.documents
+    )
     for document in registry.documents:
         assert document.source_url.encode() in page.data
 

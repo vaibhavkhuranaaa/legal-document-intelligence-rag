@@ -96,17 +96,22 @@ execution can be added only after its release identity/credentials are scoped.
 
 ## Phase 5B — Native SEC EDGAR merger-filing ingestion
 
-Status: **Ready for controlled publication — parser/citation gate passed**
+Status: **Blocked pending bounded long-paragraph chunking; not promoted**
 
 - The native HTML parser, rate-limited explicit-URL SEC client, immutable
   SEC filing metadata, and source-kind-aware citations are implemented and
   covered by deterministic tests.
 - Six official EX-2.1 merger agreements were fetched once with a declared SEC
-  User-Agent solely to validate parsing. They are not registered, indexed, or
-  visible in production yet.
+  User-Agent and checksum-registered as `approved_pending_ingestion`. They are
+  not indexed or visible in production yet.
 - The sampled official filings have no stable DOM `id`/`name` fragments.
   Phase 6 now preserves a truthful visible-heading plus text-span locator and
   never appends an unresolvable fragment to an official URL.
+- The 2026-07-16 release rehearsal found two local, fail-closed defects: an
+  unclosed EDGAR `<p>` could absorb later document text, and genuine long
+  agreement paragraphs exceed the normal retrieval chunk budget. The first is
+  repaired; the second requires the bounded follow-on below before any Azure
+  build is retried.
 
 ## Phase 6 — Parser and citation accuracy
 
@@ -120,3 +125,14 @@ Status: **Complete — local release gates validated**
 - Semantic validation blocks incomplete/invalid spans, duplicate section IDs,
   malformed heading paths, orphaned sections, duplicate SEC heading anchors,
   and incomplete SEC provenance.
+
+## Phase 6.1 — SEC long-paragraph release gate
+
+Status: **Next approved task required**
+
+- Preserve the repaired implied-end-tag handling in the native EDGAR parser.
+- Split genuine oversized SEC paragraphs at legal sentence/list boundaries,
+  retaining source anchors and truthful enclosing source spans.
+- Keep the 8,000-character pre-embedding release gate. Rebuild the staged
+  corpus only after all generated chunks pass it; then run the Azure-backed
+  benchmark before promotion.

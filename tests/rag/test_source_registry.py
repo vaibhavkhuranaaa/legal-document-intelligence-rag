@@ -9,7 +9,7 @@ from legal_rag.rag.source_registry import SourceRegistry
 def test_registry_loads_committed_public_sources() -> None:
     registry = SourceRegistry.load(Path("data/dataset_manifest.json"))
 
-    assert len(registry.documents) == 14
+    assert len(registry.documents) == 20
     document = registry.documents[0]
     assert document.source_url.startswith("https://")
     assert document.source_page_url(8).endswith("#page=8")
