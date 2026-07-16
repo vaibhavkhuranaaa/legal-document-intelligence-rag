@@ -14,13 +14,16 @@ Azure App Service on Linux uses [`startup.txt`](../startup.txt) as its custom
 startup command:
 
 ```text
-gunicorn --bind 0.0.0.0:8000 legal_rag.ui.flask_app:app
+gunicorn --bind 0.0.0.0:8000 --timeout 120 legal_rag.ui.flask_app:app
 ```
 
 The file is versioned so the same command is used in every environment. App
-Service must be configured to use it as the startup command. The first process
-start after ZIP deployment can take about a minute while Oryx prepares the
-environment; allow 90 seconds before treating a startup check as failed.
+Service must be configured to use it as the startup command. The 120-second
+Gunicorn worker timeout is intentional: a synchronous request performs Azure
+AI Search and Azure OpenAI calls, which must not be killed by Gunicorn's
+30-second default. The first process start after ZIP deployment can take about
+a minute while Oryx prepares the environment; allow 90 seconds before treating
+a startup check as failed.
 
 `pyproject.toml` and `uv.lock` remain the dependency source of truth. The
 root [`requirements.txt`](../requirements.txt) is a committed App Service

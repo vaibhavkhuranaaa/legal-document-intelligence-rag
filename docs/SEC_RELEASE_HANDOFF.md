@@ -117,6 +117,21 @@ uv run legal-rag-evaluate --gold data/evaluation/gold_qa_v2.json \
   correctness or legal advice. r3 is still staged: do not promote, change the
   live index, or publish SEC content without explicit approval.
 
+## Promotion attempt and rollback (2026-07-16)
+
+- Switching the live index setting to r3 first exposed that the older deployed
+  app artifact contained only the 14 Delaware source-registry entries. The
+  setting was immediately restored to r2; no r3 content was published.
+- The current tracked app artifact was then deployed while it remained on r2,
+  and its corpus register correctly exposed all six SEC agreements. A live
+  `/ask` smoke test nevertheless returned HTTP 500. App Service logs show
+  Gunicorn's 30-second default worker timeout killed the request during Azure
+  OpenAI client initialization; the same failure occurred for an r2 Delaware
+  question, so it is not an r3 or SEC-provenance failure.
+- The r2 setting was restored and the app was restarted successfully. Promote
+  r3 only after deploying the versioned 120-second Gunicorn timeout and
+  passing both an r2 recovery smoke test and an r3 SEC citation smoke test.
+
 ## Do not do
 
 - Do not promote r3, change the live app index, or publish SEC sources yet.
