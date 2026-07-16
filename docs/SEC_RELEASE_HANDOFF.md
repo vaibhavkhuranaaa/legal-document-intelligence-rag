@@ -62,6 +62,23 @@ evaluation, verify browser Evidence links against the official SEC sources,
 and review all results. Production remains `legal-rag-chunks-r2` until each
 gate passes.
 
+## Staged-release attempt (2026-07-16)
+
+- A clean r3 rebuild completed using the new
+  `/private/tmp/legal-rag-r3-phase61-final-embeddings.json.gz` checkpoint.
+  `legal-rag-chunks-r3` contains 3,055 chunks (the 1,468 approved Delaware
+  chunks plus the 1,587 staged SEC chunks). Production r2 remains unchanged
+  at 1,468 chunks.
+- Browser verification loaded the Microsoft/Activision official EX-2.1 URL
+  and displayed the agreement. The release CLI's `--check-urls` step remains
+  blocked because SEC returns HTTP 403 to its bare Python `HEAD` request; that
+  operator check needs the declared SEC contact identity or an SEC-compatible
+  verification method.
+- `gold-qa-v2-delaware-expansion` was started against r3 but received an Azure
+  OpenAI HTTP 429 rate-limit response from `gpt-5-mini`; it produced no report.
+  Do not promote r3. Resume only after the Azure rate limit clears and the
+  SEC URL-verification method is approved and fixed.
+
 ## Do not do
 
 - Do not promote r3, change the live app index, or publish SEC sources yet.

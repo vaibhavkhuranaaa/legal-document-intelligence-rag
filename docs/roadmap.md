@@ -141,6 +141,10 @@ Status: **Complete locally — staged Azure release remains blocked**
 - Full section paths stay on chunks and citations. Only an overlong SEC path's
   embedding context is reduced to its most-specific fitting suffix, so source
   text and provenance remain complete.
-- The next phase is a clean r3 build with a new checkpoint, Azure-backed
-  evaluation, and browser evidence-link verification. Do not promote until all
-  three succeed.
+- A clean r3 build completed with a new checkpoint: r3 contains 3,055 chunks
+  while production r2 remains at 1,468. A representative official SEC Evidence
+  link loaded in the browser.
+- Azure-backed evaluation is currently blocked by an Azure OpenAI HTTP 429
+  rate-limit response, and the generic release URL check receives SEC's HTTP
+  403 response to a bare Python `HEAD` request. Resolve and rerun those gates;
+  do not promote until all succeed.
