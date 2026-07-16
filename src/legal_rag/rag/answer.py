@@ -46,7 +46,9 @@ class AnswerService:
         self._store = store
         self._source_registry = source_registry
 
-    def ask(self, question: str, *, k: int = 8) -> Answer:
+    def ask(
+        self, question: str, *, k: int = 8, max_completion_tokens: int | None = None
+    ) -> Answer:
         results = self.retrieve(question, k=k)
 
         if not results:
@@ -59,7 +61,11 @@ class AnswerService:
 
         context = self._build_context(results)
         user_prompt = f"Context passages:\n\n{context}\n\nQuestion: {question}"
-        raw_answer = self._client.complete(system=_SYSTEM_PROMPT, user=user_prompt)
+        raw_answer = self._client.complete(
+            system=_SYSTEM_PROMPT,
+            user=user_prompt,
+            max_completion_tokens=max_completion_tokens,
+        )
 
         cited_markers = self._extract_markers(raw_answer, limit=len(results))
         citations = [

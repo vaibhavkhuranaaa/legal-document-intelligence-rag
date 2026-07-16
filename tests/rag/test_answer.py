@@ -43,7 +43,7 @@ class _FakeClient:
     def embed(self, texts):
         return [[0.1, 0.2, 0.3] for _ in texts]
 
-    def complete(self, *, system: str, user: str) -> str:
+    def complete(self, *, system: str, user: str, max_completion_tokens=None) -> str:
         self.last_user_prompt = user
         return self._completion
 

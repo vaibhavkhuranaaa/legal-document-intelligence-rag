@@ -114,7 +114,9 @@ class AzureOpenAIClient:
                 on_batch_complete(vectors)
         return vectors
 
-    def complete(self, *, system: str, user: str) -> str:
+    def complete(
+        self, *, system: str, user: str, max_completion_tokens: int | None = None
+    ) -> str:
         """Run one chat completion and return the assistant text.
 
         gpt-5-mini is a reasoning model: it consumes hidden reasoning tokens
@@ -122,12 +124,23 @@ class AzureOpenAIClient:
         for a one-word answer), so `max_completion_tokens` must be generous.
         Temperature is deliberately not set — reasoning deployments reject it.
         """
-        response = self._sdk_client.chat.completions.create(
-            model=self._settings.azure_openai_chat_deployment,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            max_completion_tokens=self._settings.answer_max_completion_tokens,
-        )
+        for attempt in range(_MAX_RATE_LIMIT_RETRIES + 1):
+            try:
+                response = self._sdk_client.chat.completions.create(
+                    model=self._settings.azure_openai_chat_deployment,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user},
+                    ],
+                    max_completion_tokens=(
+                        max_completion_tokens
+                        if max_completion_tokens is not None
+                        else self._settings.answer_max_completion_tokens
+                    ),
+                )
+                break
+            except RateLimitError as error:
+                if attempt == _MAX_RATE_LIMIT_RETRIES:
+                    raise
+                time.sleep(_rate_limit_wait_seconds(error))
         return response.choices[0].message.content or ""

@@ -18,6 +18,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--gold", type=Path, default=Path("data/evaluation/gold_qa_v1.json"))
     parser.add_argument("--output", type=Path, default=Path("data/evaluation/latest.json"))
     parser.add_argument("--k", type=int, default=8)
+    parser.add_argument(
+        "--answer-max-completion-tokens",
+        type=int,
+        default=800,
+        help="release-evaluation-only completion cap; does not change production settings",
+    )
+    parser.add_argument(
+        "--chat-request-interval-seconds",
+        type=float,
+        default=30.0,
+        help="minimum delay between release-evaluation chat requests",
+    )
     args = parser.parse_args(argv)
 
     settings = get_rag_settings()
@@ -25,7 +37,13 @@ def main(argv: list[str] | None = None) -> int:
     service = AnswerService(
         AzureOpenAIClient(settings), build_retrieval_backend(settings), source_registry=registry
     )
-    report = evaluate(service, load_gold_dataset(args.gold), k=args.k)
+    report = evaluate(
+        service,
+        load_gold_dataset(args.gold),
+        k=args.k,
+        answer_max_completion_tokens=args.answer_max_completion_tokens,
+        chat_request_interval_seconds=args.chat_request_interval_seconds,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(report.model_dump_json(indent=2) + "\n")
     print(f"Wrote {args.output} ({report.question_count} questions).")

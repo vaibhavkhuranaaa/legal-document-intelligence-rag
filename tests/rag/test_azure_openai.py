@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
 import httpx
-from openai import APIConnectionError
+from openai import APIConnectionError, RateLimitError
 
 from legal_rag.rag.azure_openai import (
     AzureOpenAIClient,
@@ -80,3 +80,39 @@ def test_embedding_retries_a_transient_connection_drop(monkeypatch) -> None:
 
     assert vectors == [[0.0]]
     assert _connection_retry_wait_seconds(0) == 5.0
+
+
+def test_chat_completion_retries_rate_limit_with_evaluation_cap(monkeypatch) -> None:
+    class _FlakyChatClient:
+        def __init__(self) -> None:
+            self.chat = SimpleNamespace(completions=self)
+            self.calls = 0
+            self.max_completion_tokens: list[int] = []
+
+        def create(self, *, model, messages, max_completion_tokens):
+            self.calls += 1
+            self.max_completion_tokens.append(max_completion_tokens)
+            if self.calls == 1:
+                response = httpx.Response(
+                    429,
+                    headers={"retry-after-ms": "1"},
+                    request=httpx.Request("POST", "https://example.test"),
+                )
+                raise RateLimitError("rate limited", response=response, body={})
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content="Answer"))]
+            )
+
+    monkeypatch.setattr("legal_rag.rag.azure_openai.time.sleep", lambda _: None)
+    settings = SimpleNamespace(
+        azure_openai_chat_deployment="chat-test", answer_max_completion_tokens=4000
+    )
+    sdk_client = _FlakyChatClient()
+
+    answer = AzureOpenAIClient(settings, sdk_client=sdk_client).complete(
+        system="System", user="Question", max_completion_tokens=800
+    )
+
+    assert answer == "Answer"
+    assert sdk_client.calls == 2
+    assert sdk_client.max_completion_tokens == [800, 800]

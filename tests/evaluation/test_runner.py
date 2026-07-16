@@ -22,7 +22,7 @@ class _Service:
             )
         ]
 
-    def ask(self, question: str, *, k: int):
+    def ask(self, question: str, *, k: int, max_completion_tokens=None):
         return Answer(
             question=question,
             text="Answer [1].",

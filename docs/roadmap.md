@@ -147,5 +147,6 @@ Status: **Complete locally — staged Azure release remains blocked**
 - The SEC-compatible URL check passed for all 20 registered sources with a
   declared contact identity. Azure-backed evaluation was attempted twice but
   received Azure OpenAI HTTP 429 rate-limit responses from `gpt-5-mini` both
-  times. Resolve that sustained capacity constraint and rerun the benchmark;
-  do not promote until it succeeds.
+  times. The pending retry uses an evaluation-only 800-token completion cap,
+  30-second chat pacing, and server-guided 429 retries; it does not change the
+  public application settings. Do not promote until the benchmark succeeds.

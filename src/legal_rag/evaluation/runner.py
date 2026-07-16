@@ -1,5 +1,6 @@
 """Evaluation runner for retrieval coverage and citation provenance."""
 
+import time
 from datetime import UTC, datetime
 from urllib.parse import urlsplit
 
@@ -12,17 +13,30 @@ def load_gold_dataset(path) -> GoldDataset:
     return GoldDataset.model_validate_json(path.read_text())
 
 
-def evaluate(service: AnswerService, dataset: GoldDataset, *, k: int = 8) -> EvaluationReport:
+def evaluate(
+    service: AnswerService,
+    dataset: GoldDataset,
+    *,
+    k: int = 8,
+    answer_max_completion_tokens: int | None = None,
+    chat_request_interval_seconds: float = 0.0,
+) -> EvaluationReport:
     """Run the versioned benchmark against the configured retrieval backend."""
     retrieval_hits = 0
     valid_citation_questions = 0
-    for item in dataset.questions:
+    if chat_request_interval_seconds < 0:
+        raise ValueError("chat_request_interval_seconds must not be negative")
+    for index, item in enumerate(dataset.questions):
         evidence = service.retrieve(item.question, k=k)
         if any(result.chunk.document_id in item.expected_document_ids for result in evidence):
             retrieval_hits += 1
-        answer = service.ask(item.question, k=k)
+        answer = service.ask(
+            item.question, k=k, max_completion_tokens=answer_max_completion_tokens
+        )
         if answer.citations and all(_citation_is_valid(citation) for citation in answer.citations):
             valid_citation_questions += 1
+        if index < len(dataset.questions) - 1:
+            time.sleep(chat_request_interval_seconds)
 
     question_count = len(dataset.questions)
     return EvaluationReport(

@@ -82,6 +82,23 @@ gate passes.
   neither attempt produced a report. Do not promote r3. Resolve the sustained
   evaluation capacity constraint before another attempt.
 
+## Evaluation pacing repair (pending live verification)
+
+- The release evaluator now keeps `k=8` but uses an evaluation-only
+  800-token completion cap and a 30-second delay between chat requests. It
+  does not change the public application's 4,000-token answer setting.
+- Chat completions now retry HTTP 429 responses using Azure's `retry-after`
+  guidance. Run the r3 benchmark once after these changes are verified locally:
+
+```bash
+RETRIEVAL_BACKEND=azure_ai_search \
+AZURE_SEARCH_ENDPOINT=https://srch-legal-rag-prod-278f1d.search.windows.net \
+AZURE_SEARCH_INDEX_NAME=legal-rag-chunks-r3 \
+AZURE_SEARCH_SOURCE_LOCATIONS_ENABLED=true \
+uv run legal-rag-evaluate --gold data/evaluation/gold_qa_v2.json \
+  --output /private/tmp/legal-rag-r3-phase61-evaluation.json
+```
+
 ## Do not do
 
 - Do not promote r3, change the live app index, or publish SEC sources yet.
