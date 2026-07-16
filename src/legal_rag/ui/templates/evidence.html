@@ -1,15 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Evidence · Legal document intelligence{% endblock %}
+{% block title %}Evidence | Legal document intelligence{% endblock %}
 {% block content %}
-<section class="page-intro"><p class="eyebrow">eDiscovery review surface</p><h1>Evidence explorer</h1><p>Inspect the exact passages used for a research question before relying on any answer.</p></section>
-<form class="inline-form" method="get"><label for="q">Search public evidence</label><input id="q" name="q" value="{{ question }}" placeholder="Enter a question or issue"><button type="submit">Retrieve evidence</button></form>
+<section class="page-intro"><p class="eyebrow">Check the record</p><h1>Source review</h1><p>Read the source excerpts connected to a research question before relying on any response.</p></section>
+<form class="inline-form" method="get"><label for="q">Search public sources</label><input id="q" name="q" value="{{ question }}" placeholder="Enter a question or issue"><button type="submit">Find sources</button></form>
 {% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
-{% if question and not matches and not error %}<div class="notice">No passages were returned for this question.</div>{% endif %}
-{% if matches %}<div class="notice">Retrieval-match scores compare passages within this result set. They rank source relevance for this query; they do not measure legal correctness or certainty.</div>{% endif %}
+{% if question and not matches and not error %}<div class="notice">No source excerpts were found for this question.</div>{% endif %}
+{% if matches %}<div class="notice">Source relevance scores compare excerpts within this result set. They help you choose what to read first. They do not measure legal correctness or certainty.</div>{% endif %}
 <div class="evidence-list">
 {% for match in matches %}
   <article class="evidence-card expanded" id="evidence-{{ match.citation.marker }}">
-    <div class="evidence-meta"><span>Passage {{ match.citation.marker }}</span><span>{{ match.citation|source_location }}</span><span><strong>Retrieval match {{ match.score }}/100</strong> · {{ match.tier }}</span></div>
+    <div class="evidence-meta"><span>Source excerpt {{ match.citation.marker }}</span><span>{{ match.citation|source_location }}</span><span><strong>Source relevance {{ match.score }}/100</strong>; {{ match.tier }}</span></div>
     <h2>{{ match.citation.document_title }}</h2>
     <p class="section-path">{{ match.citation.section_path|join(' › ') if match.citation.section_path else "Document body" }}</p>
     <blockquote>{{ match.result.chunk.text }}</blockquote>

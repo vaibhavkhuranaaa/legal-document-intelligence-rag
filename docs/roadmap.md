@@ -157,3 +157,18 @@ Status: **Complete — r3 promoted with verified rollback target**
 - The deployed Gunicorn command uses a versioned 120-second worker timeout,
   after the default 30-second timeout was observed killing a synchronous Azure
   OpenAI request. An r2 court-citation smoke test also passed after the fix.
+
+## Phase 7 — End-user research workspace
+
+Status: **Complete locally — deployment pending approval**
+
+- The public UI uses plain, source-first language and does not expose internal
+  retrieval implementation terms, AI-product wording, or em dashes.
+- A new How it works page explains focused questions, source review, and the
+  legal-information boundary in end-user language.
+- The research page includes focused-question guidance and selectable example
+  questions for a Delaware opinion, an SEC merger agreement, and an MAE case.
+- Each response shows a source-match score that verifies whether its displayed
+  citations link to the public record. It explicitly does not claim legal
+  correctness. Source-relevance scores similarly help readers choose excerpts
+  to inspect without implying certainty.

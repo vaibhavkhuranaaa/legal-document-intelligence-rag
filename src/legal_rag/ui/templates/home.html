@@ -1,27 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero">
-  <p class="eyebrow">Evidence-first legal research</p>
-  <h1>Research the record. Verify every source.</h1>
-  <p class="lede">A production RAG workspace over public M&A primary sources, designed to make evidence—not generated prose—the center of the review.</p>
+  <p class="eyebrow">Public-source legal research</p>
+  <h1>Find the source. Read the record.</h1>
+  <p class="lede">Search public M&A court opinions and agreement filings. Every response includes links to the underlying source material.</p>
   <div class="metrics">
     <div><strong>{{ source_count }}</strong><span>public sources</span></div>
-    <div><strong>{{ chunk_count if chunk_count is not none else "—" }}</strong><span>indexed passages</span></div>
-    <div><strong>HTTPS</strong><span>canonical court sources</span></div>
+    <div><strong>{{ chunk_count if chunk_count is not none else "Not available" }}</strong><span>source excerpts available</span></div>
+    <div><strong>Official</strong><span>court and filing links</span></div>
   </div>
 </section>
 <section class="research-panel" aria-labelledby="research-heading">
-  <div><p class="eyebrow">Grounded question answering</p><h2 id="research-heading">Ask a focused legal research question</h2></div>
+  <div><p class="eyebrow">Ask the record</p><h2 id="research-heading">Ask a focused legal research question</h2></div>
+  <p class="question-tip"><strong>Tip:</strong> Name a company, case, agreement, or legal issue. Ask one focused question at a time.</p>
   <form action="{{ url_for('ask') }}" method="post">
     <label for="question">Research question</label>
     <textarea id="question" name="question" required maxlength="2000" placeholder="What did the Delaware Supreme Court hold about deal price in the Dell appraisal?">{{ question }}</textarea>
-    <div class="form-actions"><span>Answers are limited to retrieved passages and cite the underlying opinion.</span><button type="submit">Research the corpus</button></div>
+    <div class="form-actions"><span>Read the cited sources before relying on a response.</span><button type="submit">Search sources</button></div>
   </form>
+  <div class="examples" aria-label="Example questions"><p>Try an example:</p><div>{% for example in ["What conditions must be met before the Microsoft and Activision merger can close?", "How did the Delaware Supreme Court treat deal price in the Dell appraisal?", "What did the court decide about a material adverse effect in Akorn?"] %}<a href="{{ url_for('home', q=example) }}">{{ example }}</a>{% endfor %}</div></div>
   {% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
 </section>
 {% if answer %}
 <section class="answer" aria-labelledby="answer-heading">
-  <div class="section-heading"><div><p class="eyebrow">{{ "Grounded answer" if answer.grounded else "Evidence incomplete" }}</p><h2 id="answer-heading">Research result</h2></div><a href="{{ url_for('evidence', q=question) }}">Inspect retrieved evidence →</a></div>
+  <div class="section-heading"><div><p class="eyebrow">{{ "Source-supported response" if answer.grounded else "Source support incomplete" }}</p><h2 id="answer-heading">Research result</h2></div><a href="{{ url_for('evidence', q=question) }}">Review source excerpts</a></div>
+  <div class="answer-match"><div><strong>{{ answer_match.score }}/100</strong><span>Source match</span></div><p>{{ answer_match.detail }} {{ answer_match.cited_source_count }} cited {{ "source" if answer_match.cited_source_count == 1 else "sources" }} shown below. This checks source links, not legal correctness.</p></div>
   <article class="answer-text">{{ answer.text }}</article>
   {% if answer.citations %}
   <h3>Sources cited in this answer</h3>
@@ -32,7 +35,7 @@
       <h4>{{ citation.document_title }}</h4>
       <p class="section-path">{{ citation.section_path|join(' › ') if citation.section_path else "Document body" }}</p>
       <p>{{ citation.snippet }}</p>
-      <a href="{{ url_for('evidence', q=question) }}#evidence-{{ citation.marker }}">Inspect evidence match →</a>
+      <a href="{{ url_for('evidence', q=question) }}#evidence-{{ citation.marker }}">Review source excerpt</a>
       {% if citation.source_url %}<br><a href="{{ citation.source_url }}" target="_blank" rel="noopener noreferrer">{{ "Open official filing section" if citation.source_kind == "sec_html" else "Open original opinion" }} ↗</a>{% endif %}
     </article>
     {% endfor %}

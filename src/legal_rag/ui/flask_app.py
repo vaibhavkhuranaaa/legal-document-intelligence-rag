@@ -32,6 +32,15 @@ class EvidenceMatch:
     tier: str
 
 
+@dataclass(frozen=True)
+class AnswerMatch:
+    """Plain-language verification of the sources shown with an answer."""
+
+    score: int
+    cited_source_count: int
+    detail: str
+
+
 def build_evidence_matches(
     results: list[tuple[ScoredChunk, Citation]],
 ) -> list[EvidenceMatch]:
@@ -46,6 +55,28 @@ def build_evidence_matches(
         tier = "Top match" if score >= 90 else "Strong match" if score >= 70 else "Supporting match"
         matches.append(EvidenceMatch(result=result, citation=citation, score=score, tier=tier))
     return matches
+
+
+def build_answer_match(answer: Answer) -> AnswerMatch:
+    """Report whether displayed citations resolve to official public sources.
+
+    This verifies source links only. It is not a legal-correctness score and
+    must not be presented as one.
+    """
+    cited_source_count = sum(citation.source_url is not None for citation in answer.citations)
+    if not answer.grounded or not answer.citations:
+        return AnswerMatch(
+            score=0,
+            cited_source_count=0,
+            detail="No supporting source was identified for this response.",
+        )
+    score = round(cited_source_count / len(answer.citations) * 100)
+    detail = (
+        "Every cited source links to the public record."
+        if score == 100
+        else "Some cited sources do not have a public link."
+    )
+    return AnswerMatch(score=score, cited_source_count=cited_source_count, detail=detail)
 
 
 class _Workspace:
@@ -93,7 +124,7 @@ def create_app(
         return (
             f"p. {citation.page_start}"
             if citation.page_start == citation.page_end
-            else f"pp. {citation.page_start}–{citation.page_end}"
+            else f"pp. {citation.page_start}-{citation.page_end}"
         )
 
     @app.template_filter("source_location")
@@ -102,7 +133,7 @@ def create_app(
             return format_pages(citation)
         section = citation.section_path[-1] if citation.section_path else "HTML filing section"
         if citation.source_start is not None and citation.source_end is not None:
-            return f"{section} · text offsets {citation.source_start}–{citation.source_end}"
+            return f"{section}; text offsets {citation.source_start}-{citation.source_end}"
         return section
 
     def render_home(*, answer: Answer | None = None, error: str | None = None, question: str = ""):
@@ -116,6 +147,7 @@ def create_app(
         return render_template(
             "home.html",
             answer=answer,
+            answer_match=build_answer_match(answer) if answer is not None else None,
             error=error,
             question=question,
             chunk_count=chunk_count,
@@ -124,7 +156,7 @@ def create_app(
 
     @app.get("/")
     def home():
-        return render_home()
+        return render_home(question=request.args.get("q", "").strip())
 
     @app.post("/ask")
     def ask():
@@ -162,7 +194,7 @@ def create_app(
                 ]
                 matches = build_evidence_matches(results)
             except Exception:
-                error = "Evidence retrieval is temporarily unavailable. Please try again shortly."
+                error = "Source search is temporarily unavailable. Please try again shortly."
         return render_template("evidence.html", question=question, matches=matches, error=error)
 
     @app.get("/corpus")
@@ -223,6 +255,10 @@ def create_app(
     def evaluation():
         report = _load_evaluation_report(evaluation_report_path)
         return render_template("evaluation.html", report=report)
+
+    @app.get("/how-it-works")
+    def how_it_works():
+        return render_template("how_it_works.html")
 
     @app.get("/healthz")
     def healthz():

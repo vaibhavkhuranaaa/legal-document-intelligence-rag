@@ -2,7 +2,7 @@ from pathlib import Path
 
 from legal_rag.rag.models import Answer, Chunk, Citation, ScoredChunk
 from legal_rag.rag.source_registry import SourceRegistry
-from legal_rag.ui.flask_app import build_evidence_matches, create_app
+from legal_rag.ui.flask_app import build_answer_match, build_evidence_matches, create_app
 
 
 class _FakeService:
@@ -69,6 +69,7 @@ def test_public_workspace_routes_render() -> None:
     assert client.get("/").status_code == 200
     assert client.get("/corpus").status_code == 200
     assert client.get("/evaluation").status_code == 200
+    assert client.get("/how-it-works").status_code == 200
     assert client.get("/healthz").get_json()["status"] == "ok"
     assert b">Evaluation<" not in client.get("/").data
 
@@ -99,7 +100,9 @@ def test_answer_and_evidence_expose_page_aware_source_link() -> None:
     assert b"#page=2" in answer.data
     assert evidence.status_code == 200
     assert b"Source checksum" in evidence.data
-    assert b"Retrieval match 100/100" in evidence.data
+    assert b"Source match" in answer.data
+    assert b"Every cited source links to the public record." in answer.data
+    assert b"Source relevance 100/100" in evidence.data
     assert b"Top match" in evidence.data
     assert b"#evidence-1" in answer.data
 
@@ -124,3 +127,39 @@ def test_evidence_match_is_relative_to_the_returned_result_set() -> None:
         (100, "Top match"),
         (50, "Supporting match"),
     ]
+
+
+def test_answer_match_verifies_public_source_links_without_claiming_correctness() -> None:
+    answer = _FakeService(SourceRegistry.load(Path("data/dataset_manifest.json"))).ask("Question")
+
+    match = build_answer_match(answer)
+
+    assert match.score == 100
+    assert match.cited_source_count == 1
+    assert match.detail == "Every cited source links to the public record."
+
+
+def test_home_includes_question_guidance_and_examples() -> None:
+    page = _client().get("/")
+
+    assert b"Ask one focused question at a time." in page.data
+    assert b"Try an example:" in page.data
+    assert b"Microsoft and Activision merger" in page.data
+    assert b"How it works" in page.data
+
+
+def test_public_pages_do_not_expose_technical_or_ai_product_language() -> None:
+    client = _client()
+    pages = [
+        client.get("/").data,
+        client.get("/corpus").data,
+        client.get("/evaluation").data,
+        client.get("/how-it-works").data,
+        client.get("/evidence?q=What+does+the+record+say%3F").data,
+    ]
+
+    for page in pages:
+        assert b"RAG" not in page
+        assert b"generated" not in page.lower()
+        assert b"chunk" not in page.lower()
+        assert "—".encode() not in page
