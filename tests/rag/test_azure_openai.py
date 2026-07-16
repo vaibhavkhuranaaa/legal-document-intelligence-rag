@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
 import httpx
-from openai import APIConnectionError, RateLimitError
+from openai import APIConnectionError, APITimeoutError, RateLimitError
 
 from legal_rag.rag.azure_openai import (
     AzureOpenAIClient,
@@ -116,3 +116,31 @@ def test_chat_completion_retries_rate_limit_with_evaluation_cap(monkeypatch) -> 
     assert answer == "Answer"
     assert sdk_client.calls == 2
     assert sdk_client.max_completion_tokens == [800, 800]
+
+
+def test_chat_completion_retries_a_transient_timeout(monkeypatch) -> None:
+    class _FlakyChatClient:
+        def __init__(self) -> None:
+            self.chat = SimpleNamespace(completions=self)
+            self.calls = 0
+
+        def create(self, *, model, messages, max_completion_tokens):
+            self.calls += 1
+            if self.calls == 1:
+                raise APITimeoutError(request=httpx.Request("POST", "https://example.test"))
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content="Answer"))]
+            )
+
+    monkeypatch.setattr("legal_rag.rag.azure_openai.time.sleep", lambda _: None)
+    settings = SimpleNamespace(
+        azure_openai_chat_deployment="chat-test", answer_max_completion_tokens=4000
+    )
+    sdk_client = _FlakyChatClient()
+
+    answer = AzureOpenAIClient(settings, sdk_client=sdk_client).complete(
+        system="System", user="Question"
+    )
+
+    assert answer == "Answer"
+    assert sdk_client.calls == 2

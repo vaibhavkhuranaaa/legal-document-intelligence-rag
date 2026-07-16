@@ -143,4 +143,8 @@ class AzureOpenAIClient:
                 if attempt == _MAX_RATE_LIMIT_RETRIES:
                     raise
                 time.sleep(_rate_limit_wait_seconds(error))
+            except (APIConnectionError, APITimeoutError):
+                if attempt == _MAX_RATE_LIMIT_RETRIES:
+                    raise
+                time.sleep(_connection_retry_wait_seconds(attempt))
         return response.choices[0].message.content or ""

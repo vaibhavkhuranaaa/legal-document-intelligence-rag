@@ -128,7 +128,7 @@ Status: **Complete — local release gates validated**
 
 ## Phase 6.1 — SEC long-paragraph release gate
 
-Status: **Complete locally — staged Azure release remains blocked**
+Status: **Staged release validated — pending explicit promotion approval**
 
 - Preserve the repaired implied-end-tag handling in the native EDGAR parser.
 - Split genuine oversized SEC paragraphs at legal sentence/list boundaries,
@@ -142,14 +142,13 @@ Status: **Complete locally — staged Azure release remains blocked**
   embedding context is reduced to its most-specific fitting suffix, so source
   text and provenance remain complete.
 - A clean r3 build completed with a new checkpoint: r3 contains 3,055 chunks
-  while production r2 remains at 1,468. A representative official SEC Evidence
-  link loaded in the browser.
+  while production r2 remains at 1,468.
 - The SEC-compatible URL check passed for all 20 registered sources with a
-  declared contact identity. Azure-backed evaluation was attempted twice but
-  received Azure OpenAI HTTP 429 rate-limit responses from `gpt-5-mini` both
-  times. The pending retry uses an evaluation-only 800-token completion cap,
-  30-second chat pacing, and server-guided 429 retries; it does not change the
-  public application settings. Do not promote until the benchmark succeeds.
-- The paced retry completed without 429s and achieved 100% retrieval hit
-  rate@8, but citation-provenance validity fell to 28.9% (13/45). The staged
-  release remains blocked pending investigation of the citation regression.
+  declared contact identity. A manual browser check verified all six official
+  SEC EX-2.1 evidence destinations.
+- The checkpointed, paced Azure evaluation completed against r3: 45/45
+  retrieval hits at k=8 and 45/45 provenance-valid citations. Its
+  evaluation-only 2,400-token completion cap, 45-second chat pacing, and
+  bounded service retries do not change public application settings.
+- Promotion is deliberately pending explicit approval and final release review;
+  production remains `legal-rag-chunks-r2` until promotion is authorized.

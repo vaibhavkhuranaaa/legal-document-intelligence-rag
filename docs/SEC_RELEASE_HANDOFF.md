@@ -82,13 +82,14 @@ gate passes.
   neither attempt produced a report. Do not promote r3. Resolve the sustained
   evaluation capacity constraint before another attempt.
 
-## Evaluation pacing repair (pending live verification)
+## Evaluation pacing repair
 
 - The release evaluator now keeps `k=8` but uses an evaluation-only
-  800-token completion cap and a 30-second delay between chat requests. It
+  2,400-token completion cap and a 45-second delay between chat requests. It
   does not change the public application's 4,000-token answer setting.
 - Chat completions now retry HTTP 429 responses using Azure's `retry-after`
-  guidance. Run the r3 benchmark once after these changes are verified locally:
+  guidance. The evaluator checkpoints each completed question locally, so an
+  interrupted run resumes without repeating completed requests.
 
 ```bash
 RETRIEVAL_BACKEND=azure_ai_search \
@@ -99,15 +100,22 @@ uv run legal-rag-evaluate --gold data/evaluation/gold_qa_v2.json \
   --output /private/tmp/legal-rag-r3-phase61-evaluation.json
 ```
 
-## Paced r3 evaluation result (2026-07-16)
+## Final staged r3 evaluation and evidence verification (2026-07-16)
 
-- The paced benchmark completed without an Azure 429. It recorded 100%
-  retrieval hit rate@8 (45/45) but only 28.9% citation-provenance validity
-  (13/45). This fails the release evaluation gate; do not promote r3.
-- The completion cap/pacing solved the infrastructure throttling but altered
-  answer-generation behavior enough to invalidate the prior provenance metric.
-  Investigate the missing citations before choosing a release-evaluation
-  configuration or promoting the staged index.
+- The checkpointed paced benchmark completed against `legal-rag-chunks-r3`.
+  `gold-qa-v2-delaware-expansion` reported 100% retrieval hit rate@8 (45/45)
+  and 100% citation-provenance validity (45/45); every result contained at
+  least one provenance-valid citation. The report is local-only at
+  `/private/tmp/legal-rag-r3-phase61-evaluation-2400.json`.
+- The initial process ended between questions 43 and 44 without a recorded
+  application or Azure service error. The persisted checkpoint resumed the
+  final two questions and produced the complete report.
+- The release operator manually verified that all six official SEC EX-2.1
+  evidence URLs load the corresponding agreement. This supplements—not
+  replaces—the automated 20-source SEC-compatible URL check.
+- These checks validate retrieval and citation provenance, not legal-answer
+  correctness or legal advice. r3 is still staged: do not promote, change the
+  live index, or publish SEC content without explicit approval.
 
 ## Do not do
 

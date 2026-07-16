@@ -23,6 +23,24 @@ class EvaluationMetrics(BaseModel):
     citation_provenance_validity: float = Field(ge=0, le=1)
 
 
+class QuestionEvaluation(BaseModel):
+    """Non-content diagnostic result for one gold question."""
+
+    question_id: str
+    retrieval_hit: bool
+    citation_count: int = Field(ge=0)
+    citation_provenance_valid: bool
+    failure_reason: Literal["no_citations", "invalid_citation_provenance"] | None = None
+
+
+class EvaluationCheckpoint(BaseModel):
+    """Resumable, non-content state for an interrupted release evaluation."""
+
+    benchmark_version: str
+    retrieval_k: int = Field(ge=1)
+    question_results: list[QuestionEvaluation] = Field(default_factory=list)
+
+
 class EvaluationReport(BaseModel):
     schema_version: Literal["1.0"] = "1.0"
     status: Literal["pending", "complete"]
@@ -32,4 +50,5 @@ class EvaluationReport(BaseModel):
     retrieval_k: int = Field(ge=1)
     generated_at: datetime | None = None
     metrics: EvaluationMetrics | None = None
+    question_results: list[QuestionEvaluation] = Field(default_factory=list)
     note: str
