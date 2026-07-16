@@ -144,7 +144,8 @@ Status: **Complete locally — staged Azure release remains blocked**
 - A clean r3 build completed with a new checkpoint: r3 contains 3,055 chunks
   while production r2 remains at 1,468. A representative official SEC Evidence
   link loaded in the browser.
-- Azure-backed evaluation is currently blocked by an Azure OpenAI HTTP 429
-  rate-limit response, and the generic release URL check receives SEC's HTTP
-  403 response to a bare Python `HEAD` request. Resolve and rerun those gates;
-  do not promote until all succeed.
+- The SEC-compatible URL check passed for all 20 registered sources with a
+  declared contact identity. Azure-backed evaluation was attempted twice but
+  received Azure OpenAI HTTP 429 rate-limit responses from `gpt-5-mini` both
+  times. Resolve that sustained capacity constraint and rerun the benchmark;
+  do not promote until it succeeds.

@@ -74,14 +74,13 @@ gate passes.
   chunks plus the 1,587 staged SEC chunks). Production r2 remains unchanged
   at 1,468 chunks.
 - Browser verification loaded the Microsoft/Activision official EX-2.1 URL
-  and displayed the agreement. The release CLI's `--check-urls` step remains
-  blocked because SEC returns HTTP 403 to its bare Python `HEAD` request; that
-  operator check needs the declared SEC contact identity or an SEC-compatible
-  verification method.
-- `gold-qa-v2-delaware-expansion` was started against r3 but received an Azure
-  OpenAI HTTP 429 rate-limit response from `gpt-5-mini`; it produced no report.
-  Do not promote r3. Resume only after the Azure rate limit clears and the
-  SEC URL-verification method is approved and fixed.
+  and displayed the agreement. The SEC-compatible URL check subsequently
+  passed for all 20 public sources with the declared `Data Org` contact
+  identity.
+- `gold-qa-v2-delaware-expansion` was attempted twice against r3 and received
+  an Azure OpenAI HTTP 429 rate-limit response from `gpt-5-mini` both times;
+  neither attempt produced a report. Do not promote r3. Resolve the sustained
+  evaluation capacity constraint before another attempt.
 
 ## Do not do
 
