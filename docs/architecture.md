@@ -56,7 +56,7 @@ request never performs ingestion, embedding, or index mutation.
   8,000-character embedding gate, only the embedding prefix is reduced to its
   most-specific fitting suffix; citation metadata and source text are intact.
 - `data/evaluation/gold_qa_v2.json` contains the versioned 45-question gold
-  benchmark across the 14-opinion public corpus. `legal-rag-evaluate` is an explicit, Azure-backed release check;
+  benchmark across the 14-opinion Delaware evaluation corpus. `legal-rag-evaluate` is an explicit, Azure-backed release check;
   only its recorded aggregate results may be displayed publicly.
 
 ## Production deployment direction
@@ -85,5 +85,6 @@ available for development and deterministic tests.
   authentication, Blob-backed ingestion storage, and Azure AI Search hybrid
   retrieval are selected through typed settings.
 - Production Azure resources, Search index schema, RBAC, and the promoted
-  1,468-chunk expanded corpus index: provisioned and live.
+  3,055-chunk r3 corpus index: provisioned and live. It retains r2 (1,468
+  Delaware chunks) as the rollback target.
 - Flask/Gunicorn workspace: deployed and smoke-tested at the public host.

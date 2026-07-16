@@ -128,7 +128,7 @@ Status: **Complete — local release gates validated**
 
 ## Phase 6.1 — SEC long-paragraph release gate
 
-Status: **Staged release validated — pending explicit promotion approval**
+Status: **Complete — r3 promoted with verified rollback target**
 
 - Preserve the repaired implied-end-tag handling in the native EDGAR parser.
 - Split genuine oversized SEC paragraphs at legal sentence/list boundaries,
@@ -150,5 +150,10 @@ Status: **Staged release validated — pending explicit promotion approval**
   retrieval hits at k=8 and 45/45 provenance-valid citations. Its
   evaluation-only 2,400-token completion cap, 45-second chat pacing, and
   bounded service retries do not change public application settings.
-- Promotion is deliberately pending explicit approval and final release review;
-  production remains `legal-rag-chunks-r2` until promotion is authorized.
+- The App Service now serves `legal-rag-chunks-r3` after a restart reloaded its
+  retrieval backend. A live SEC regulatory-approvals question returned HTTP 200
+  with grounded Microsoft/Activision Article VI and VII evidence linked to the
+  official SEC filing. `legal-rag-chunks-r2` remains the rollback target.
+- The deployed Gunicorn command uses a versioned 120-second worker timeout,
+  after the default 30-second timeout was observed killing a synchronous Azure
+  OpenAI request. An r2 court-citation smoke test also passed after the fix.

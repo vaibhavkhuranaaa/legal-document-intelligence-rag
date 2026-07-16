@@ -4,12 +4,13 @@ Last updated: 2026-07-16
 
 ## Current safe state
 
-- The public Flask app remains on `legal-rag-chunks-r2` with 1,468 Delaware
-  opinion chunks. Do not change its index setting during this work.
-- `legal-rag-chunks-r3` is staged only and has no promoted content.
+- The public Flask app serves `legal-rag-chunks-r3`: 3,055 chunks comprising
+  1,468 Delaware opinion chunks and 1,587 SEC agreement chunks.
+- `legal-rag-chunks-r2` remains intact with 1,468 Delaware opinion chunks as
+  the rollback target.
 - Six official SEC EX-2.1 inputs are checksum-registered in
-  `data/dataset_manifest.json` as `approved_pending_ingestion`. Their local
-  source and processed artifacts are ignored and must never be committed.
+  `data/dataset_manifest.json`. Their local source and processed artifacts are
+  ignored and must never be committed.
 
 ## Phase 6.1 completed locally
 
@@ -114,8 +115,7 @@ uv run legal-rag-evaluate --gold data/evaluation/gold_qa_v2.json \
   evidence URLs load the corresponding agreement. This supplements—not
   replaces—the automated 20-source SEC-compatible URL check.
 - These checks validate retrieval and citation provenance, not legal-answer
-  correctness or legal advice. r3 is still staged: do not promote, change the
-  live index, or publish SEC content without explicit approval.
+  correctness or legal advice. They were the pre-promotion gates for r3.
 
 ## Promotion attempt and rollback (2026-07-16)
 
@@ -128,13 +128,26 @@ uv run legal-rag-evaluate --gold data/evaluation/gold_qa_v2.json \
   Gunicorn's 30-second default worker timeout killed the request during Azure
   OpenAI client initialization; the same failure occurred for an r2 Delaware
   question, so it is not an r3 or SEC-provenance failure.
-- The r2 setting was restored and the app was restarted successfully. Promote
-  r3 only after deploying the versioned 120-second Gunicorn timeout and
-  passing both an r2 recovery smoke test and an r3 SEC citation smoke test.
+- The r2 setting was restored and the app was restarted successfully.
+
+## Completed r3 promotion (2026-07-16)
+
+- The versioned 120-second Gunicorn timeout was deployed after Ruff and the
+  full 175-test suite passed. It prevents the existing synchronous Azure AI
+  Search/Azure OpenAI request path from being killed by Gunicorn's 30-second
+  default worker timeout.
+- An r2 Delaware research smoke test returned HTTP 200 with grounded canonical
+  court citations. The app was then restarted with
+  `AZURE_SEARCH_INDEX_NAME=legal-rag-chunks-r3` so the in-memory retrieval
+  backend reloaded the promoted index.
+- The final Microsoft/Activision regulatory-approvals smoke test returned HTTP
+  200 with grounded Article VII and Article VI evidence and official SEC filing
+  links. r3 is the live index; r2 remains the rollback target.
 
 ## Do not do
 
-- Do not promote r3, change the live app index, or publish SEC sources yet.
+- Do not modify the live r3 index or App Service retrieval setting without a
+  new release gate and explicit approval; use r2 as the rollback target.
 - Do not reuse `/private/tmp/legal-rag-r3-embeddings.json.gz` after chunk
   identities change.
 - Do not solve the issue by truncating agreement text, inventing page numbers,

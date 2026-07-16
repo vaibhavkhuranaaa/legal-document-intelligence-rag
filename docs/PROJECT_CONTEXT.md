@@ -61,16 +61,16 @@ flagged the answer as ungrounded).
 |---|---|---|
 | Ingestion pipeline | ✅ Complete, validated | 14/14 public corpus documents processed, 0 failures |
 | Azure infrastructure | ✅ Provisioned, live | `rg-legal-rag-dev` (East US): `di-legal-rag-dev` (Document Intelligence, S0), `oai-legal-rag-dev` (Azure OpenAI, S0) with `gpt-5-mini` (10K TPM) and `text-embedding-3-small` (100K TPM) deployed |
-| Chunking + embeddings | ✅ Complete, validated | 1,468 chunks indexed from the real corpus |
+| Chunking + embeddings | ✅ Complete, validated | 3,055 r3 chunks: 1,468 Delaware opinion chunks plus 1,587 SEC agreement chunks |
 | Hybrid retrieval | ✅ Complete, validated | Chroma (vector) + BM25 (lexical), RRF-fused |
 | Grounded answering | ✅ Complete, validated live | Correct, well-cited answers on real legal questions; refusal path confirmed working |
 | Flask research workspace | ✅ Live | Research, Evidence, Corpus, Evaluation, and health routes on Azure App Service |
-| Tests / CI | ✅ 150 passing, lint clean | `uv run pytest`, `uv run ruff check .` |
+| Tests / CI | ✅ 175 passing, lint clean | `uv run pytest`, `uv run ruff check .` |
 | Production adapters | ✅ Implemented, unit-tested | Managed identity, Blob Storage, and Azure AI Search adapters |
-| Deployment infrastructure | ✅ Release-ready | Production resource group, identity, Storage, Blob container, AI Search, and the 1,468-chunk public corpus are live |
+| Deployment infrastructure | ✅ Live | Production resource group, identity, Storage, Blob container, AI Search, and the 3,055-chunk r3 public corpus are live; r2 remains rollback |
 | App Service public host | ✅ Live | Flask/Gunicorn at the repository's public demo URL |
 | Parser v2 (outline state machine) | ❌ Not started | Current heading-style registry works but has known residual limitations (§6) |
-| Evaluation harness | ✅ Release recorded | `gold-qa-v2-delaware-expansion`: 45 questions, 100% retrieval hit rate@8 and citation-provenance validity against the 1,468-chunk production index |
+| Evaluation harness | ✅ Release recorded | `gold-qa-v2-delaware-expansion`: 45 questions, 100% retrieval hit rate@8 and citation-provenance validity against staged r3 before promotion |
 
 ## 4. Architecture At A Glance
 
@@ -131,8 +131,9 @@ uv run ruff check .                                        # lint
    retrieval coverage and citation provenance, not legal-answer correctness;
    expand to attorney-reviewed answer/citation correctness only in a dedicated
    later evaluation phase.
-4. **Production corpus is released.** `legal-rag-chunks-r2` contains the
-   approved 1,468 public chunks; the prior 390-chunk index remains the rollback point.
+4. **Production corpus is released.** `legal-rag-chunks-r3` contains the
+   approved 3,055 public chunks; `legal-rag-chunks-r2` (1,468 Delaware chunks)
+   remains the rollback point.
 
 ## 7. How To Improve — Prioritized Roadmap
 
