@@ -399,3 +399,31 @@ needed to add auditable evidence links to the current corpus, and every later
 corpus release must supply a valid canonical URL and checksum. User uploads are
 explicitly out of scope until authenticated, isolated eDiscovery processing is
 designed.
+
+---
+
+## ADR-0014: Preserve SEC provenance while bounding embedding context
+
+**Context:** A genuine SEC agreement paragraph can exceed the retrieval
+budget. In addition, some parsed SEC heading ancestries exceed the
+8,000-character pre-embedding gate before source text is added. The gate must
+remain fail-closed, while a citation must retain the complete section path,
+official source anchor, and source span.
+
+**Decision:** Split only oversized SEC paragraphs, preferring legal
+sentence/list boundaries and retaining the original text exactly. Each
+fragment keeps its document ID, element ID, full `section_path`, source anchor,
+and enclosing source span. When a full SEC path would leave no room for source
+text in `embed_text`, embed the most-specific contiguous suffix that fits; keep
+the full path in the chunk and citation metadata.
+
+**Alternatives considered:** Truncating source text or weakening the release
+gate (rejected: both conceal release defects); replacing the stored section
+path (rejected: loses evidence provenance); changing the SEC parser hierarchy
+in this bounded release-gate phase (deferred: it is a separate parser-quality
+concern).
+
+**Consequences:** SEC chunks remain reviewer-auditable and every embedding
+payload can satisfy the fixed gate. Retrieval loses only excess ancestor
+context in the exceptional overlong-path case; the nearest section identity,
+full metadata, and all source text remain available.

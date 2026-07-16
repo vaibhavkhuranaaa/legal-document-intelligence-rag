@@ -51,6 +51,10 @@ request never performs ingestion, embedding, or index mutation.
 - Native spans flow from the PDF/HTML extraction layer through chunks and Azure
   Search. SEC evidence uses a visible heading and deterministic text-offset
   locator when EDGAR has no stable deep-link fragment.
+- SEC chunks retain their complete section path and enclosing source span. If
+  an anomalously deep SEC path cannot coexist with source text under the
+  8,000-character embedding gate, only the embedding prefix is reduced to its
+  most-specific fitting suffix; citation metadata and source text are intact.
 - `data/evaluation/gold_qa_v2.json` contains the versioned 45-question gold
   benchmark across the 14-opinion public corpus. `legal-rag-evaluate` is an explicit, Azure-backed release check;
   only its recorded aggregate results may be displayed publicly.

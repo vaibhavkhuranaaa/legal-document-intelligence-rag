@@ -128,11 +128,19 @@ Status: **Complete — local release gates validated**
 
 ## Phase 6.1 — SEC long-paragraph release gate
 
-Status: **Next approved task required**
+Status: **Complete locally — staged Azure release remains blocked**
 
 - Preserve the repaired implied-end-tag handling in the native EDGAR parser.
 - Split genuine oversized SEC paragraphs at legal sentence/list boundaries,
-  retaining source anchors and truthful enclosing source spans.
-- Keep the 8,000-character pre-embedding release gate. Rebuild the staged
-  corpus only after all generated chunks pass it; then run the Azure-backed
-  benchmark before promotion.
+  retaining source text, document/element identity, full section paths,
+  source anchors, and truthful enclosing source spans.
+- Six ignored local records were regenerated from the approved inputs and
+  passed checksum and semantic validation. The repaired corpus has 1,587
+  chunks; its largest embedding payload is 7,999 characters, passing the
+  immutable 8,000-character pre-embedding gate.
+- Full section paths stay on chunks and citations. Only an overlong SEC path's
+  embedding context is reduced to its most-specific fitting suffix, so source
+  text and provenance remain complete.
+- The next phase is a clean r3 build with a new checkpoint, Azure-backed
+  evaluation, and browser evidence-link verification. Do not promote until all
+  three succeed.

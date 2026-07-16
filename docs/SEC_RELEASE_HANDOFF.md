@@ -11,7 +11,7 @@ Last updated: 2026-07-16
   `data/dataset_manifest.json` as `approved_pending_ingestion`. Their local
   source and processed artifacts are ignored and must never be committed.
 
-## Verified release finding
+## Phase 6.1 completed locally
 
 The initial r3 rehearsal did not reveal a general Azure capacity problem. It
 revealed malformed release payloads:
@@ -21,30 +21,46 @@ revealed malformed release payloads:
 - Cause one: HTMLParser does not apply browser implied-end-tag rules. An
   unclosed EDGAR `<p>` capture absorbed later document content and became a
   false heading/path. This is repaired in `ingestion/sec_edgar.py`.
-- After that repair, all six filings have ordinary raw paragraph bounds (the
-  largest is 5,014 characters), but some genuine agreement paragraphs produce
-  8,191–28,482-character embedding payloads. The chunker currently only
-  groups paragraphs; it does not split a single paragraph.
+- After the implied-block repair, genuine agreement paragraphs still exceeded
+  the retrieval budget. `rag/chunking.py` now splits only individual SEC
+  paragraphs, preferring legal sentence and list boundaries. It preserves the
+  original text exactly, plus the document ID, element ID, full section path,
+  official anchor, and enclosing source span.
+- Some legacy SEC section paths are themselves too large to embed alongside
+  source text. Their full value remains in `Chunk.section_path`; only the
+  embedding context uses the most-specific suffix that fits the hard gate.
+  No source text or citation metadata is truncated.
 - `rag/chunking.py` now blocks any embedding payload above 8,000 characters
   before it can call Azure OpenAI. This guard is intentional and must remain.
 
-## Next bounded task: Phase 6.1
+## Local verification (2026-07-16)
 
-Implement provenance-preserving splitting for an individual oversized SEC
-paragraph. Split at legal sentence/list boundaries where possible, never drop
-or silently truncate text, retain the original section path and official HTML
-anchor, and retain a truthful enclosing source span when a finer exact span is
-not available. Add deterministic tests for long paragraphs, nested lists, and
-the release gate.
+- Regenerated all six ignored local SEC `DocumentRecord`s from the already
+  downloaded approved inputs only. Each source checksum and generated document
+  ID match `data/dataset_manifest.json`; all six records validate.
+- The repaired SEC corpus contains **1,587 chunks**. Its largest `embed_text`
+  is **7,999 characters**; the 8,000-character release gate passes.
+- Ruff and the full test suite passed locally. No Azure indexing, evaluation,
+  browser verification, app-setting change, or promotion was performed.
 
-Release acceptance criteria:
+## Next approved phase: clean staged r3 rebuild
 
-1. Every SEC chunk passes the 8,000-character embedding-payload gate.
-2. All six records validate with their registered checksum and official URL.
-3. A clean r3 rebuild uses a new checkpoint (the old 160-vector checkpoint is
-   incompatible with repaired chunk identities).
-4. Azure-backed evaluation and browser evidence-link checks pass before r3 is
-   promoted.
+Use a new checkpoint; the old
+`/private/tmp/legal-rag-r3-embeddings.json.gz` is incompatible with this
+corpus build:
+
+```bash
+RETRIEVAL_BACKEND=azure_ai_search \
+AZURE_SEARCH_INDEX_NAME=legal-rag-chunks-r3 \
+AZURE_SEARCH_SOURCE_LOCATIONS_ENABLED=true \
+uv run legal-rag-index \
+  --embedding-checkpoint /private/tmp/legal-rag-r3-phase61-embeddings.json.gz
+```
+
+Before any promotion, confirm the clean r3 build, run the Azure-backed
+evaluation, verify browser Evidence links against the official SEC sources,
+and review all results. Production remains `legal-rag-chunks-r2` until each
+gate passes.
 
 ## Do not do
 
