@@ -61,3 +61,6 @@ chroma_db/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Derived local agent context
+graphify-out/

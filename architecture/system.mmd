@@ -1,0 +1,11 @@
+flowchart LR
+  Sources["Registered public court PDFs and SEC HTML"] --> Extract["Azure Document Intelligence or native SEC parser"]
+  Extract --> Records["Versioned document records"]
+  Records --> Chunks["Structure-aware public chunks"]
+  Chunks --> Search["Azure AI Search promoted index"]
+  Search --> Answer["Azure OpenAI grounded answer service"]
+  Answer --> App["Read-only Flask evidence workspace"]
+  App --> Citations["Canonical source, section, page, and checksum"]
+  Evaluation["Versioned release evaluation"] --> Search
+  Identity["Managed identity and Azure resource boundary"] --> Search
+  Identity --> Answer

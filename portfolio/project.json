@@ -1,17 +1,205 @@
 {
-  "$schema": "https://yourdomain.com/schemas/project-manifest-v1.json",
-  "version": 1,
+  "version": 2,
   "slug": "legal-document-intelligence-rag",
   "title": "Legal Document Intelligence RAG",
-  "summary": "Citation-grounded answers over public Delaware M&A litigation, built end-to-end on Azure.",
-  "industries": ["Legal technology"],
-  "categories": ["AI/ML", "Cloud"],
-  "stack": ["Python", "Flask", "Azure Document Intelligence", "Azure OpenAI", "Azure AI Search", "Azure Blob Storage"],
+  "summary": "A deployed Azure RAG research workspace for citation-grounded questions over public M&A litigation and transaction documents.",
+  "outcome": "A versioned public-document pipeline turns court opinions and SEC filings into 3,055 searchable chunks and returns evidence-linked answers with an explicit refusal path.",
+  "industries": [
+    "Legal technology"
+  ],
+  "categories": [
+    "AI/ML",
+    "Cloud"
+  ],
+  "stack": [
+    "Python",
+    "Flask",
+    "Azure Document Intelligence",
+    "Azure OpenAI",
+    "Azure AI Search",
+    "Azure Blob Storage"
+  ],
   "githubUrl": "https://github.com/vaibhavkhuranaaa/legal-document-intelligence-rag",
   "liveUrl": "https://app-legal-rag-prod-278f1d.azurewebsites.net/",
-  "deployment": {"provider": "Azure", "status": "live", "runtime": "Azure App Service"},
-  "metrics": ["139 deterministic tests", "390 approved public chunks", "Citation-required grounded generation"],
-  "stages": ["Public PDF ingestion", "Structure-aware chunking", "Hybrid retrieval", "Grounded generation", "Flask evidence workspace", "Azure deployment"],
-  "architecture": ["PDF corpus", "Azure Document Intelligence", "Structured chunks", "Azure AI Search", "Azure OpenAI", "Cited response"],
-  "disclaimer": "Uses public court opinions only. Legal information, not legal advice."
+  "deployment": {
+    "provider": "Azure",
+    "status": "live",
+    "runtime": "Flask and Gunicorn on Azure App Service with managed identity, Azure AI Search, and Blob Storage",
+    "exposure": "anonymous",
+    "productionClaim": false,
+    "verifiedAt": "2026-07-23T20:57:44Z",
+    "expiresAt": null,
+    "evidenceRefs": [
+      "deployment.azure-root"
+    ]
+  },
+  "metrics": [
+    "Retrieval hit rate@8 1.0 on the 45-question gold-qa-v2-delaware-expansion benchmark",
+    "Citation-provenance validity 1.0 on the same versioned benchmark",
+    "3,055 public chunks in the promoted r3 Azure AI Search index"
+  ],
+  "stages": [
+    "Public source registration and checksum validation",
+    "Azure Document Intelligence and native SEC HTML extraction",
+    "Structure-aware chunking and embeddings",
+    "Azure AI Search retrieval",
+    "Citation-required grounded generation and refusal",
+    "Read-only Flask research workspace on Azure App Service"
+  ],
+  "architecture": [
+    "Public court opinions and SEC transaction documents",
+    "Versioned extraction adapters and document records",
+    "Structure-aware public corpus chunks",
+    "Azure AI Search retrieval index",
+    "Azure OpenAI grounded answer service",
+    "Flask evidence workspace with source links"
+  ],
+  "evaluation": [
+    "data/evaluation/latest.json records the 45-question gold-qa-v2-delaware-expansion release evaluation",
+    "Retrieval hit rate and citation provenance measure corpus retrieval and citation traceability, not legal-answer correctness",
+    "The release runbook requires corpus, retrieval, citation, refusal, and post-deployment route checks"
+  ],
+  "operationalTradeoffs": [
+    "Azure managed services simplify identity and hosted retrieval but add cloud-resource cost and release coordination",
+    "The public endpoint is anonymous and read-only; it is not a confidential eDiscovery workspace or production legal service",
+    "The current evaluation proves retrieval and provenance, not attorney-reviewed answer accuracy",
+    "The promoted r3 index has a separately retained r2 rollback index"
+  ],
+  "disclaimer": "Uses public court opinions and public SEC transaction documents. The application provides legal information for engineering demonstration and is not legal advice.",
+  "dataDisclosure": {
+    "source": "Official public Delaware court opinions and public SEC transaction documents registered with source URLs and checksums",
+    "license": "Public official-source documents; source-specific terms and United States government/public-record status apply",
+    "classification": "public",
+    "permittedUse": "Read-only portfolio demonstration, retrieval evaluation, and engineering research with source attribution",
+    "includedFields": [
+      "Public document text and extracted structural elements",
+      "Case, court, filing, section, page, checksum, and canonical source metadata",
+      "Embeddings and retrieval chunks derived from the registered public corpus"
+    ],
+    "excludedFields": [
+      "Client, firm, user-uploaded, confidential, privileged, and personal matter data",
+      "Private credentials, local environment files, and raw authorization material",
+      "Legal opinions, attorney work product, and production discovery decisions"
+    ],
+    "deployedArtifactContents": [
+      "A promoted Azure AI Search index containing 3,055 chunks derived from approved public documents",
+      "Public-source citation metadata and aggregate evaluation results",
+      "Read-only Flask application code; no private user-upload workflow"
+    ]
+  },
+  "evidence": [
+    {
+      "id": "evaluation.release-v2",
+      "kind": "evaluation",
+      "claim": "The 45-question release benchmark recorded retrieval hit rate@8 1.0 and citation-provenance validity 1.0.",
+      "source": "data/evaluation/latest.json",
+      "method": "Run the versioned gold-qa-v2-delaware-expansion evaluation against the configured promoted retrieval index.",
+      "result": "retrieval 1.0 / citation provenance 1.0"
+    },
+    {
+      "id": "deployment.azure-root",
+      "kind": "deployment",
+      "claim": "The current Azure App Service application root returned HTTP 200.",
+      "source": "evidence/deployment/live-check.json",
+      "method": "Read-only HTTP request with redirects followed; no user data submitted.",
+      "result": true
+    },
+    {
+      "id": "disclosure.public-corpus",
+      "kind": "disclosure",
+      "claim": "The deployed retrieval corpus is derived from registered public court and SEC sources, not confidential client documents.",
+      "source": "data/dataset_manifest.json and docs/deployment.md",
+      "method": "Review the versioned source registry, checksums, production index inventory, and documented environment boundary.",
+      "result": "public"
+    },
+    {
+      "id": "test.repository-suite",
+      "kind": "test",
+      "claim": "The repository test suite passed locally when source import resolution was made explicit.",
+      "source": "docs/STATE.md",
+      "method": "Run `PYTHONPATH=src .venv/bin/python -m pytest -q` after detecting stale editable-install paths in the generated virtual environment.",
+      "result": "178 passed"
+    }
+  ],
+  "story": {
+    "recruiterSummary": "Legal teams need answers that stay attached to the source, especially when documents are long and high stakes. This project demonstrates an evidence-first research workflow over public M&A litigation and transaction documents: a reviewer asks a question, receives a grounded answer, and can inspect the cited document, section, and page rather than trusting an unsupported response.",
+    "technicalNarrative": "Versioned adapters ingest public PDFs through Azure Document Intelligence and public SEC HTML through a native parser, normalize them into stable records, and build structure-aware chunks. Azure AI Search retrieves the promoted public corpus; Azure OpenAI generates only from that evidence, while the Flask workspace exposes research, corpus, evaluation, and health views. Managed identity separates deployed resources from local credentials, and the corpus index is promoted independently from application deployment.",
+    "scalabilityRoadmap": [
+      "Add attorney-reviewed answer and citation-correctness evaluation beyond retrieval and provenance checks",
+      "Replace the residual style-based legal-outline parser heuristics with a branch-aware outline state machine",
+      "Add authenticated matter isolation, encrypted private storage, malware scanning, retention, and audit controls before any user uploads",
+      "Move ingestion and index construction to durable background workflows with reviewed index promotion",
+      "Add quota, cost, abuse, availability, and security monitoring appropriate to an owner-approved production service"
+    ],
+    "executiveSummary": "An Azure-hosted, evidence-first RAG workspace that makes every supported answer traceable to a registered public legal source.",
+    "intendedUser": "A legal-technology reviewer or AI engineering hiring manager evaluating trustworthy document retrieval and deployment practices.",
+    "example": {
+      "title": "Ask a legal research question and inspect the evidence",
+      "steps": [
+        "Ask a question about a document in the registered public corpus",
+        "Review the grounded answer or explicit refusal",
+        "Open the numbered citations and inspect case, section, page, and canonical source",
+        "Compare release metrics with the committed evaluation artifact"
+      ]
+    },
+    "technologyDecisions": [
+      {
+        "technology": "Azure AI Search with Azure OpenAI",
+        "rationale": "Managed retrieval, identity, and model services support a deployable Azure reference architecture.",
+        "alternative": "Local Chroma and API-key based model access",
+        "tradeoff": "The managed path improves deployment boundaries but costs more and requires explicit corpus-index promotion."
+      },
+      {
+        "technology": "Vendor-neutral extraction records",
+        "rationale": "Azure SDK objects terminate at the adapter so parsing, chunking, evaluation, and storage remain testable.",
+        "alternative": "Propagate Azure SDK types through the pipeline",
+        "tradeoff": "The stable boundary adds mapping code but reduces provider coupling and keeps tests deterministic."
+      }
+    ],
+    "evidence": [
+      {
+        "value": "1.0",
+        "label": "retrieval hit rate@8",
+        "context": "45-question versioned release benchmark.",
+        "method": "Committed release evaluation against the promoted index.",
+        "evidenceRefs": [
+          "evaluation.release-v2"
+        ]
+      },
+      {
+        "value": "3,055",
+        "label": "public retrieval chunks",
+        "context": "Promoted r3 Azure AI Search corpus with r2 retained for rollback.",
+        "method": "Versioned deployment runbook and promoted-index inventory.",
+        "evidenceRefs": [
+          "disclosure.public-corpus"
+        ]
+      }
+    ],
+    "limitations": [
+      "The public endpoint is anonymous and does not have the controls required for confidential legal matters.",
+      "The evaluation does not establish legal-answer correctness or legal advice quality.",
+      "Some source-specific reuse terms may differ even though the documents are available from official public sources.",
+      "HTTP reachability does not establish an availability, confidentiality, security, or production SLO."
+    ]
+  },
+  "resume": {
+    "bulletCandidates": [
+      {
+        "role": "AI Engineer",
+        "bullet": "Built and deployed an Azure RAG workspace using Document Intelligence, AI Search, Azure OpenAI, managed identity, and citation-required generation over a 3,055-chunk public legal corpus.",
+        "evidenceRefs": [
+          "disclosure.public-corpus",
+          "deployment.azure-root"
+        ]
+      },
+      {
+        "role": "Machine Learning Engineer",
+        "bullet": "Versioned and evaluated a 45-question legal retrieval benchmark, recording 1.0 retrieval hit rate@8 and 1.0 citation-provenance validity while explicitly separating those metrics from legal-answer accuracy.",
+        "evidenceRefs": [
+          "evaluation.release-v2"
+        ]
+      }
+    ]
+  }
 }
