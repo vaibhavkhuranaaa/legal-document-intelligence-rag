@@ -4,7 +4,7 @@
 - Deployment: `live`
 - Exposure: `anonymous`
 - Production claim: `false`
-- Publication: approved legacy v1 SHA; local v2 replacement awaits commit, push, preview, and registry approval
+- Publication: approved legacy v1 SHA; v2 replacement is in draft PR 1 and awaits exact-SHA preview and registry approval
 - Public corpus: promoted `legal-rag-chunks-r3`, 3,055 chunks; r2 retained for rollback
 - Evidence: release evaluation, source registry/disclosure, repository tests, and a 2026-07-23 root reachability check
 
