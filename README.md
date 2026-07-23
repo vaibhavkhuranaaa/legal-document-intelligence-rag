@@ -15,7 +15,7 @@ Built as an AI engineering portfolio project demonstrating the full lifecycle:
 document ingestion via Azure Document Intelligence, structure-aware chunking,
 hybrid retrieval (vector + BM25), and grounded generation via Azure OpenAI —
 with production engineering throughout (typed schemas, dependency injection,
-structured logging, per-document failure isolation, 150 tests, CI, and
+structured logging, per-document failure isolation, 178 tests, CI, and
 architecture decision records).
 
 ## What it does
@@ -103,7 +103,7 @@ uv run flask --app legal_rag.ui.flask_app:app run --port 8503
 ## Development
 
 ```bash
-uv run pytest          # 156 tests, no network calls, deterministic
+PYTHONPATH=src .venv/bin/python -m pytest -q  # 178 deterministic tests
 uv run ruff check .    # lint
 uv run ruff format .   # format
 ```
