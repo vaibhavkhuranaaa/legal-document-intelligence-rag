@@ -46,9 +46,7 @@ class AnswerService:
         self._store = store
         self._source_registry = source_registry
 
-    def ask(
-        self, question: str, *, k: int = 8, max_completion_tokens: int | None = None
-    ) -> Answer:
+    def ask(self, question: str, *, k: int = 8, max_completion_tokens: int | None = None) -> Answer:
         results = self.retrieve(question, k=k)
 
         if not results:

@@ -114,9 +114,7 @@ class AzureOpenAIClient:
                 on_batch_complete(vectors)
         return vectors
 
-    def complete(
-        self, *, system: str, user: str, max_completion_tokens: int | None = None
-    ) -> str:
+    def complete(self, *, system: str, user: str, max_completion_tokens: int | None = None) -> str:
         """Run one chat completion and return the assistant text.
 
         gpt-5-mini is a reasoning model: it consumes hidden reasoning tokens

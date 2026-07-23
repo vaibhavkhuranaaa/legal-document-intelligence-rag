@@ -49,9 +49,7 @@ def evaluate(
         retrieval_hit = any(
             result.chunk.document_id in item.expected_document_ids for result in evidence
         )
-        answer = service.ask(
-            item.question, k=k, max_completion_tokens=answer_max_completion_tokens
-        )
+        answer = service.ask(item.question, k=k, max_completion_tokens=answer_max_completion_tokens)
         citation_provenance_valid = bool(answer.citations) and all(
             _citation_is_valid(citation) for citation in answer.citations
         )
@@ -85,11 +83,13 @@ def evaluate(
     return EvaluationReport(
         status="complete",
         benchmark_version=dataset.benchmark_version,
-        corpus_document_count=len({
-            document_id
-            for item in dataset.questions
-            for document_id in item.expected_document_ids
-        }),
+        corpus_document_count=len(
+            {
+                document_id
+                for item in dataset.questions
+                for document_id in item.expected_document_ids
+            }
+        ),
         question_count=question_count,
         retrieval_k=k,
         generated_at=datetime.now(UTC),
