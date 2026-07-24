@@ -51,13 +51,24 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       - name: Deploy exact archive
-        run: >
-          az webapp deploy
-          --resource-group "$RESOURCE_GROUP"
-          --name "$WEB_APP"
-          --src-path "legal-rag-$SOURCE_SHA.zip"
-          --type zip
-          --restart true
+        run: |
+          started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          az webapp deploy \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$WEB_APP" \
+            --src-path "legal-rag-$SOURCE_SHA.zip" \
+            --type zip \
+            --restart false \
+            --async true
+          for attempt in $(seq 1 60); do
+            logs="$(az webapp log deployment show --resource-group "$RESOURCE_GROUP" --name "$WEB_APP" --output json)"
+            if printf '%s' "$logs" | jq -e --arg started "$started_at" \
+              'any(.[]; .log_time >= $started and .message == "Deployment successful. deployer = OneDeploy deploymentPath = OneDeploy")' >/dev/null; then
+              break
+            fi
+            test "$attempt" -lt 60
+            sleep 10
+          done
       - name: Stamp deployed source revision
         run: |
           az webapp config appsettings set \
