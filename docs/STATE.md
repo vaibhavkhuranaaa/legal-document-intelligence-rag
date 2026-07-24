@@ -1,5 +1,7 @@
 # State
 
+Exact-SHA deployment automation is declared in `portfolio/release.json`. The workflow tests the approved revision, deploys only to the existing Azure App Service, verifies live evidence routes, uploads a release receipt, and requests portfolio admission.
+
 - Lifecycle: `maintained`
 - Deployment: `live`
 - Exposure: `anonymous`
