@@ -16,7 +16,7 @@
 - Preserve unrelated dirty and untracked work, including the existing local `.agents/`, `.claude/`, and `data/release-5a-input/` items.
 - Use Python 3.12, `uv`, the `src/` layout, typed boundaries, and deterministic tests. Never install into system Python or hand-edit generated dependency outputs.
 - Use purpose branches, conventional commits, and the configured human identity only; never add AI/model author or co-author attribution.
-- Preview, publication approval, merge, deployment, public visibility, paid resources, and data-release promotion are separate owner-gated actions.
+- Merging a completed release to `main` authorizes automatic redeployment to the declared existing Azure target, live-SHA verification, and portfolio synchronization. New or expanded paid capacity and data-release promotion remain owner-gated.
 - Delegation is optional and must be bounded.
 
 Run Ruff and the repository tests before handoff. Update state, handoff, architecture/ADR documentation, deployment evidence, and the manifest whenever their owning facts change.
