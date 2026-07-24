@@ -67,6 +67,7 @@ def store() -> tuple[AzureAISearchStore, _FakeSearchClient]:
         AzureAISearchStore(
             endpoint="https://example.search.windows.net",
             index_name="legal-rag",
+            source_locations_enabled=True,
             search_client=client,  # type: ignore[arg-type]
         ),
         client,
@@ -75,10 +76,16 @@ def store() -> tuple[AzureAISearchStore, _FakeSearchClient]:
 
 def test_indexes_chunks_with_vectors(store: tuple[AzureAISearchStore, _FakeSearchClient]) -> None:
     backend, client = store
-    backend.index([_chunk()], [[0.1, 0.2]])
+    chunk = _chunk().model_copy(
+        update={"source_anchor": "article-i", "source_start": 10, "source_end": 30}
+    )
+    backend.index([chunk], [[0.1, 0.2]])
 
     assert client.uploaded[0]["chunk_id"] == "c1"
     assert client.uploaded[0]["embedding"] == [0.1, 0.2]
+    assert client.uploaded[0]["source_anchor"] == "article-i"
+    assert client.uploaded[0]["source_start"] == 10
+    assert client.uploaded[0]["source_end"] == 30
 
 
 def test_hybrid_search_maps_results_to_chunks(

@@ -120,7 +120,7 @@ capabilities. This list summarizes scope, not implementation — see
 7. Retrieval
 8. Azure OpenAI response generation
 9. Evaluation
-10. Streamlit interface
+10. Evidence-first public research interface
 11. Azure deployment
 
 ## Success Criteria
@@ -132,6 +132,12 @@ capabilities. This list summarizes scope, not implementation — see
 - Azure deployment
 - Accurate, citation-backed answers
 - Evaluation metrics
+
+The public interface is a read-only research workspace: ask grounded questions,
+inspect retrieved evidence, browse the public corpus, and review a versioned
+evaluation report. Public source links and page references are required for
+eDiscovery-style review. Private user uploads are a future, separately secured
+workflow—not a feature of the public app.
 - Portfolio-ready documentation
 
 ## Future Enhancements

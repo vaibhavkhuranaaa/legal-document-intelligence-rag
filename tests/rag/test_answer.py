@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from legal_rag.rag.answer import AnswerService
 from legal_rag.rag.models import Chunk, ScoredChunk
+from legal_rag.rag.source_registry import SourceRegistry
 from legal_rag.rag.store import RetrievalBackend, reciprocal_rank_fusion
 
 
@@ -40,7 +43,7 @@ class _FakeClient:
     def embed(self, texts):
         return [[0.1, 0.2, 0.3] for _ in texts]
 
-    def complete(self, *, system: str, user: str) -> str:
+    def complete(self, *, system: str, user: str, max_completion_tokens=None) -> str:
         self.last_user_prompt = user
         return self._completion
 
@@ -122,3 +125,17 @@ def test_out_of_range_markers_are_ignored() -> None:
     answer = service.ask("Question?")
 
     assert [c.marker for c in answer.citations] == [1]
+
+
+def test_answer_resolves_public_source_provenance() -> None:
+    registry = SourceRegistry.load(Path("data/dataset_manifest.json"))
+    chunk = _chunk("c1")
+    chunk.document_id = registry.documents[0].document_id
+    store = _FakeStore([ScoredChunk(chunk=chunk, score=1.0)])
+    service = AnswerService(_FakeClient("Answer [1]."), store, registry)  # type: ignore[arg-type]
+
+    citation = service.ask("Question?").citations[0]
+
+    assert citation.source_checksum == registry.documents[0].document_id
+    assert citation.source_url is not None
+    assert citation.source_url.endswith("#page=11")

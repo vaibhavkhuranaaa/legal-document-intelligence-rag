@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "benchmark_version": "gold-qa-v1",
+  "questions": [
+    {"question_id":"abraham-01","question":"What Delaware LLC provision governed the short-form merger discussed in Abraham v. Estate of Wirtz?","expected_document_ids":["b26e789a9d5aa0f29bd96c98e35ce412d318d04e546b1357b49365677fa86b45"]},
+    {"question_id":"abraham-02","question":"Why did the plaintiff seek a quasi-appraisal remedy in Abraham v. Estate of Wirtz?","expected_document_ids":["b26e789a9d5aa0f29bd96c98e35ce412d318d04e546b1357b49365677fa86b45"]},
+    {"question_id":"abraham-03","question":"What did the court analyze about the merger notice in Abraham v. Estate of Wirtz?","expected_document_ids":["b26e789a9d5aa0f29bd96c98e35ce412d318d04e546b1357b49365677fa86b45"]},
+    {"question_id":"abraham-04","question":"What appraisal-rights perfection issue arose in Abraham v. Estate of Wirtz?","expected_document_ids":["b26e789a9d5aa0f29bd96c98e35ce412d318d04e546b1357b49365677fa86b45"]},
+    {"question_id":"abraham-05","question":"Which Delaware court issued the Abraham v. Estate of Wirtz opinion?","expected_document_ids":["b26e789a9d5aa0f29bd96c98e35ce412d318d04e546b1357b49365677fa86b45"]},
+    {"question_id":"abraham-06","question":"What motion did the Abraham v. Estate of Wirtz memorandum opinion resolve?","expected_document_ids":["b26e789a9d5aa0f29bd96c98e35ce412d318d04e546b1357b49365677fa86b45"]},
+    {"question_id":"dell-trial-01","question":"What is the continuous holder requirement addressed in In re Appraisal of Dell Inc.?","expected_document_ids":["9a44311695807b9face57847efce7af3e3d640be6656fe3c0d8614525599259b"]},
+    {"question_id":"dell-trial-02","question":"How did DTC-level administrative share transfers matter in the Dell appraisal opinion?","expected_document_ids":["9a44311695807b9face57847efce7af3e3d640be6656fe3c0d8614525599259b"]},
+    {"question_id":"dell-trial-03","question":"What dissenting stockholder issue did the Court of Chancery analyze in In re Appraisal of Dell Inc.?","expected_document_ids":["9a44311695807b9face57847efce7af3e3d640be6656fe3c0d8614525599259b"]},
+    {"question_id":"dell-trial-04","question":"Which Delaware statutory appraisal requirement is central to the 2015 Dell opinion?","expected_document_ids":["9a44311695807b9face57847efce7af3e3d640be6656fe3c0d8614525599259b"]},
+    {"question_id":"dell-trial-05","question":"What procedural appraisal question did the 2015 Dell Court of Chancery opinion address?","expected_document_ids":["9a44311695807b9face57847efce7af3e3d640be6656fe3c0d8614525599259b"]},
+    {"question_id":"dell-trial-06","question":"What was the docket number for In re Appraisal of Dell Inc.?","expected_document_ids":["9a44311695807b9face57847efce7af3e3d640be6656fe3c0d8614525599259b"]},
+    {"question_id":"dell-supreme-01","question":"What did the Delaware Supreme Court hold about deal price in Dell, Inc. v. Magnetar?","expected_document_ids":["c145d8c463f19a25140bac41e89b5e86869af2b9d3cf52f49cb18999e55c89b8"]},
+    {"question_id":"dell-supreme-02","question":"How did the Delaware Supreme Court discuss discounted cash flow analysis in Dell v. Magnetar?","expected_document_ids":["c145d8c463f19a25140bac41e89b5e86869af2b9d3cf52f49cb18999e55c89b8"]},
+    {"question_id":"dell-supreme-03","question":"Which market-based indicators were relevant to fair value in Dell v. Magnetar?","expected_document_ids":["c145d8c463f19a25140bac41e89b5e86869af2b9d3cf52f49cb18999e55c89b8"]},
+    {"question_id":"dell-supreme-04","question":"What was reversed and remanded in Dell, Inc. v. Magnetar?","expected_document_ids":["c145d8c463f19a25140bac41e89b5e86869af2b9d3cf52f49cb18999e55c89b8"]},
+    {"question_id":"dell-supreme-05","question":"Which court issued the 2017 Dell v. Magnetar opinion?","expected_document_ids":["c145d8c463f19a25140bac41e89b5e86869af2b9d3cf52f49cb18999e55c89b8"]},
+    {"question_id":"dell-supreme-06","question":"How did Dell v. Magnetar frame fair value versus the merger deal price?","expected_document_ids":["c145d8c463f19a25140bac41e89b5e86869af2b9d3cf52f49cb18999e55c89b8"]},
+    {"question_id":"pivotal-01","question":"What per-share price did VMware pay for Pivotal Software?","expected_document_ids":["cd2ead3fd904d216e4ce2cff9e90d842f60651930b39b2d7726c9469c793ef7a"]},
+    {"question_id":"pivotal-02","question":"How did the HBK v. Pivotal opinion evaluate DCF and deal-price methodologies?","expected_document_ids":["cd2ead3fd904d216e4ce2cff9e90d842f60651930b39b2d7726c9469c793ef7a"]},
+    {"question_id":"pivotal-03","question":"Which court issued the HBK v. Pivotal Software post-trial memorandum opinion?","expected_document_ids":["cd2ead3fd904d216e4ce2cff9e90d842f60651930b39b2d7726c9469c793ef7a"]},
+    {"question_id":"pivotal-04","question":"What kind of opinion is HBK v. Pivotal Software?","expected_document_ids":["cd2ead3fd904d216e4ce2cff9e90d842f60651930b39b2d7726c9469c793ef7a"]},
+    {"question_id":"pivotal-05","question":"What transaction did the HBK v. Pivotal litigation concern?","expected_document_ids":["cd2ead3fd904d216e4ce2cff9e90d842f60651930b39b2d7726c9469c793ef7a"]},
+    {"question_id":"pivotal-06","question":"When was the Pivotal memorandum opinion corrected?","expected_document_ids":["cd2ead3fd904d216e4ce2cff9e90d842f60651930b39b2d7726c9469c793ef7a"]},
+    {"question_id":"pivotal-07","question":"What appraisal valuation issue did HBK v. Pivotal Software address?","expected_document_ids":["cd2ead3fd904d216e4ce2cff9e90d842f60651930b39b2d7726c9469c793ef7a"]}
+  ]
+}

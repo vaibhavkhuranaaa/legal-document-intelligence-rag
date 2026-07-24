@@ -6,21 +6,23 @@ separate.
 
 ## Current implemented system
 
-The application is a local, API-key-authenticated Streamlit and CLI demo over a
-public corpus of Delaware M&A litigation. It has been validated against Azure
-Document Intelligence and Azure OpenAI.
+The application is a public corpus research system over Delaware M&A litigation
+and, after the SEC release gate is satisfied, public SEC merger filings.
+Production uses managed identity, Azure OpenAI, and Azure AI Search; local
+development retains API-key/Chroma support. The live public host serves the
+Flask/Gunicorn research workspace.
 
 ```text
-Public PDF corpus
-  -> Azure Document Intelligence (prebuilt-layout)
+Public court-PDF corpus -> Azure Document Intelligence (prebuilt-layout)
+Public SEC HTML corpus -> native HTML parser (no synthetic pages)
   -> Azure-SDK adapter
   -> outline parser and validation
   -> versioned DocumentRecord JSON
   -> structure-aware chunking
   -> Azure OpenAI embeddings
-  -> local Chroma vector retrieval + in-process BM25, RRF fused
+  -> Azure AI Search production retrieval / local Chroma + BM25 development retrieval
   -> Azure OpenAI grounded answering
-  -> Streamlit UI / CLI
+  -> public research workspace / CLI
 ```
 
 ### Boundaries that are already in place
@@ -33,18 +35,38 @@ Public PDF corpus
 - Construction occurs in the CLI/UI entry points; pipeline and domain logic use
   injected dependencies.
 
-This is intentionally suitable for local development, but it is not yet a
-production deployment: Chroma persists locally, authentication uses API keys,
-and no Azure-hosted storage or search backend exists.
+The local backend is intentionally suitable for deterministic development.
+Production uses the Azure implementations behind the same interfaces; a web
+request never performs ingestion, embedding, or index mutation.
 
-## Approved deployment direction (not yet implemented)
+### Evidence provenance and evaluation
+
+- `data/dataset_manifest.json` is the source registry for every public source.
+  `SourceRegistry` validates HTTPS canonical source URLs and checksum identity.
+- `AnswerService` resolves each cited document ID through that registry and
+  returns the canonical source link, checksum, document, section, and excerpt
+  together. Court PDFs retain page ranges; SEC HTML never makes a page claim.
+- The Flask Evidence explorer displays that provenance without trusting model-
+  composed citations.
+- Native spans flow from the PDF/HTML extraction layer through chunks and Azure
+  Search. SEC evidence uses a visible heading and deterministic text-offset
+  locator when EDGAR has no stable deep-link fragment.
+- SEC chunks retain their complete section path and enclosing source span. If
+  an anomalously deep SEC path cannot coexist with source text under the
+  8,000-character embedding gate, only the embedding prefix is reduced to its
+  most-specific fitting suffix; citation metadata and source text are intact.
+- `data/evaluation/gold_qa_v2.json` contains the versioned 45-question gold
+  benchmark across the 14-opinion Delaware evaluation corpus. `legal-rag-evaluate` is an explicit, Azure-backed release check;
+  only its recorded aggregate results may be displayed publicly.
+
+## Production deployment direction
 
 ```text
 Controlled ingestion and indexing workflow
   -> Azure Blob Storage (raw documents, processed records, manifests)
   -> Azure AI Search (production hybrid index)
 
-Azure App Service running Streamlit
+Azure App Service running the public UI
   -> managed identity
   -> Azure OpenAI + Azure AI Search + Blob Storage
   -> Application Insights
@@ -62,5 +84,7 @@ available for development and deterministic tests.
 - Azure adapter layer: implemented and unit-tested. `DefaultAzureCredential`
   authentication, Blob-backed ingestion storage, and Azure AI Search hybrid
   retrieval are selected through typed settings.
-- Production Azure resources, Search index schema, RBAC, observability, and
-  CD: not provisioned; see [roadmap.md](./roadmap.md).
+- Production Azure resources, Search index schema, RBAC, and the promoted
+  3,055-chunk r3 corpus index: provisioned and live. It retains r2 (1,468
+  Delaware chunks) as the rollback target.
+- Flask/Gunicorn workspace: deployed and smoke-tested at the public host.

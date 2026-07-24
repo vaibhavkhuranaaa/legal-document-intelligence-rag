@@ -286,6 +286,26 @@ def test_ambiguous_heading_matching_multiple_open_depths_emits_warning() -> None
     assert result.structure[1].level == 1
 
 
+def test_decimal_successor_warning_is_scoped_to_its_parent_branch() -> None:
+    document = _document(
+        paragraphs=[
+            _paragraph("ARTICLE I", RawParagraphRole.SECTION_HEADING, y=0),
+            _paragraph("1.1 First", RawParagraphRole.SECTION_HEADING, y=1),
+            _paragraph("1.3 Skipped", RawParagraphRole.SECTION_HEADING, y=2),
+            _paragraph("ARTICLE II", RawParagraphRole.SECTION_HEADING, y=3),
+            _paragraph("2.1 New branch", RawParagraphRole.SECTION_HEADING, y=4),
+        ]
+    )
+
+    result = build_structure(document)
+
+    successor_warnings = [
+        warning for warning in result.warnings if "unexpected heading successor" in warning
+    ]
+    assert len(successor_warnings) == 1
+    assert "1.3 Skipped" in successor_warnings[0]
+
+
 def test_single_character_ambiguous_heading_can_be_reclaimed_by_a_later_sibling() -> None:
     """Documents this heuristic's known residual limitation: a single
     character valid as both a Roman numeral and a letter (I, V, X, L, C, D,

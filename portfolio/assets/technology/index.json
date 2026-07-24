@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "package": "simple-icons",
+    "version": "16.27.0",
+    "license": "CC0-1.0",
+    "url": "https://simpleicons.org"
+  },
+  "technologies": [
+    {
+      "name": "Python",
+      "icon": "portfolio/assets/technology/python.svg",
+      "role": "Application, adapters, and evaluation language",
+      "provenance": "Simple Icons 16.27.0 (CC0-1.0)"
+    },
+    {
+      "name": "Flask",
+      "icon": "portfolio/assets/technology/flask.svg",
+      "role": "Read-only research workspace",
+      "provenance": "Simple Icons 16.27.0 (CC0-1.0)"
+    },
+    {
+      "name": "Azure Document Intelligence",
+      "icon": null,
+      "role": "Public PDF extraction",
+      "provenance": "Visible text fallback; no approved local logo registered"
+    },
+    {
+      "name": "Azure OpenAI",
+      "icon": null,
+      "role": "Evidence-constrained answer generation",
+      "provenance": "Visible text fallback; no approved local logo registered"
+    },
+    {
+      "name": "Azure AI Search",
+      "icon": null,
+      "role": "Promoted public-corpus retrieval index",
+      "provenance": "Visible text fallback; no approved local logo registered"
+    },
+    {
+      "name": "Azure Blob Storage",
+      "icon": null,
+      "role": "Versioned public document storage",
+      "provenance": "Visible text fallback; no approved local logo registered"
+    }
+  ]
+}

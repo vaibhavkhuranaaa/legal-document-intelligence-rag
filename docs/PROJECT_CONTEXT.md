@@ -20,7 +20,7 @@ It was built in disciplined phases (bootstrap → ingestion pipeline → live
 Azure validation → RAG demo), each phase verified against real Azure services
 before the next began, with ADRs recording every non-trivial decision. The
 demo is **working today**, validated with real questions against a real
-4-document, 305-page corpus.
+14-document, 1,133-page corpus.
 
 **Repository:** `github.com/vaibhavkhuranaaa/legal-document-intelligence-rag`
 (currently **private**; safe to make public — no secrets are tracked, corpus
@@ -46,7 +46,7 @@ flagged the answer as ungrounded).
 - Real Azure services end-to-end (Document Intelligence, Azure OpenAI), not
   mocked — every capability claimed has been verified with a live API call.
 - Production engineering discipline: vendor SDK isolation, dependency
-  injection, typed errors, versioned schemas, structured logging, 139 tests,
+  injection, typed errors, versioned schemas, structured logging, 147 tests,
   CI, 12 ADRs documenting *why*, not just *what*.
 - Honest documentation: known limitations are written down, not hidden (e.g.
   the parser's residual heuristic limitations, the corpus/product-scope
@@ -59,23 +59,23 @@ flagged the answer as ungrounded).
 
 | Layer | Status | Evidence |
 |---|---|---|
-| Ingestion pipeline | ✅ Complete, validated | 4/4 corpus documents processed, 0 failures, 2,438 elements extracted, real tables extracted |
+| Ingestion pipeline | ✅ Complete, validated | 14/14 public corpus documents processed, 0 failures |
 | Azure infrastructure | ✅ Provisioned, live | `rg-legal-rag-dev` (East US): `di-legal-rag-dev` (Document Intelligence, S0), `oai-legal-rag-dev` (Azure OpenAI, S0) with `gpt-5-mini` (10K TPM) and `text-embedding-3-small` (100K TPM) deployed |
-| Chunking + embeddings | ✅ Complete, validated | 390 chunks indexed from the real corpus |
+| Chunking + embeddings | ✅ Complete, validated | 3,055 r3 chunks: 1,468 Delaware opinion chunks plus 1,587 SEC agreement chunks |
 | Hybrid retrieval | ✅ Complete, validated | Chroma (vector) + BM25 (lexical), RRF-fused |
 | Grounded answering | ✅ Complete, validated live | Correct, well-cited answers on real legal questions; refusal path confirmed working |
-| Streamlit demo UI | ✅ Complete, verified serving | `uv run streamlit run src/legal_rag/ui/streamlit_app.py` |
-| Tests / CI | ✅ 139 passing, lint clean | `uv run pytest`, `uv run ruff check .` |
+| Flask research workspace | ✅ Live | Research, Evidence, Corpus, Evaluation, and health routes on Azure App Service |
+| Tests / CI | ✅ 175 passing, lint clean | `uv run pytest`, `uv run ruff check .` |
 | Production adapters | ✅ Implemented, unit-tested | Managed identity, Blob Storage, and Azure AI Search adapters |
-| Deployment infrastructure | 🟡 Nearly complete | Production resource group, identity, Storage, Blob container, AI Search, `legal-rag-chunks`, and 390 public chunks are live |
-| App Service public host | 🟡 Resource provisioned; release recovery pending | East US B1 quota was granted; the first OneDeploy job is stale after a pre-`requirements.txt` source deployment |
+| Deployment infrastructure | ✅ Live | Production resource group, identity, Storage, Blob container, AI Search, and the 3,055-chunk r3 public corpus are live; r2 remains rollback |
+| App Service public host | ✅ Live | Flask/Gunicorn at the repository's public demo URL |
 | Parser v2 (outline state machine) | ❌ Not started | Current heading-style registry works but has known residual limitations (§6) |
-| Evaluation harness (gold QA set) | ❌ Not started | No formal metrics yet — only manually-verified live examples |
+| Evaluation harness | ✅ Release recorded | `gold-qa-v2-delaware-expansion`: 45 questions, 100% retrieval hit rate@8 and citation-provenance validity against staged r3 before promotion |
 
 ## 4. Architecture At A Glance
 
 ```
-PDF corpus (public Delaware M&A litigation, 4 docs / 305 pages)
+PDF corpus (public Delaware M&A litigation, 14 docs / 1,133 pages)
   → Azure Document Intelligence (prebuilt-layout, S0)
   → adapter (sole Azure-SDK boundary; nothing downstream touches SDK types)
   → outline parser (heading-style registry; deterministic ambiguity warnings)
@@ -85,7 +85,8 @@ PDF corpus (public Delaware M&A litigation, 4 docs / 305 pages)
   → Azure OpenAI embeddings (text-embedding-3-small)
   → hybrid retrieval: Chroma (dense) + BM25 (lexical), RRF-fused
   → grounded generation (gpt-5-mini; citation-required prompting)
-  → Streamlit UI / legal-rag-ask CLI (citations resolved to case/section/page)
+  → Flask public research workspace / legal-rag-ask CLI
+    (citations resolve to case/section/page/canonical source URL/checksum)
 ```
 
 Code layout:
@@ -94,8 +95,8 @@ src/legal_rag/
 ├── ingestion/   # discovery → normalization → Azure DI client + adapter →
 │                # outline parser → mapper → validation → storage → manifests
 ├── rag/         # chunking, embeddings, hybrid store, answer service, CLIs
-└── ui/          # Streamlit demo
-tests/           # 139 tests, no network calls, deterministic (fakes for Azure)
+└── ui/          # Flask research workspace
+tests/           # 150 tests, no network calls, deterministic (fakes for Azure)
 docs/            # this file, ADRs, roadmap, architecture review, product spec
 data/            # dataset_manifest.json (committed); raw/processed/failed (gitignored)
 ```
@@ -108,8 +109,8 @@ uv sync                                                   # env + deps
 uv run legal-rag-ingest                                   # PDFs -> structured JSON
 uv run legal-rag-index                                    # chunk + embed + index
 uv run legal-rag-ask "your question"                      # CLI Q&A
-uv run streamlit run src/legal_rag/ui/streamlit_app.py     # web demo
-uv run pytest                                              # 139 tests
+uv run flask --app legal_rag.ui.flask_app:app run --port 8503
+uv run pytest                                              # 150 tests
 uv run ruff check .                                        # lint
 ```
 
@@ -126,47 +127,36 @@ uv run ruff check .                                        # lint
    pipeline); validated corpus is Delaware court opinions instead. Product
    scope now explicitly covers both; EDGAR ingestion is an approved,
    deferred future milestone (ADR-0011).
-3. **No formal evaluation harness.** Correctness has been verified by
-   running real questions and manually checking the answers/citations
-   against the source PDFs — solid for a demo, not a substitute for a gold
-   QA set with hit-rate/citation-accuracy metrics.
-4. **Public hosting release is awaiting Azure deployment recovery.** The East
-   US B1 quota was granted and App Service exists, but its first OneDeploy job
-   remains stale. The corrected release includes a generated `requirements.txt`
-   because App Service needs it to create the Python environment from the
-   `uv`-managed project.
-5. **Production corpus is released.** `legal-rag-chunks` contains the approved
-   390 public chunks; future releases still need the operator workflow below.
+3. **Evaluation scope is intentionally narrow.** `gold-qa-v2-delaware-expansion` validates
+   retrieval coverage and citation provenance, not legal-answer correctness;
+   expand to attorney-reviewed answer/citation correctness only in a dedicated
+   later evaluation phase.
+4. **Production corpus is released.** `legal-rag-chunks-r3` contains the
+   approved 3,055 public chunks; `legal-rag-chunks-r2` (1,468 Delaware chunks)
+   remains the rollback point.
 
 ## 7. How To Improve — Prioritized Roadmap
 
 Full detail and reasoning: `docs/ARCHITECTURE_REVIEW.md` §14. Summary,
 highest-value first:
 
-1. **Gold QA evaluation harness** (before anything else) — ~25 questions
-   with known-correct answers/citations against the real corpus, scored for
-   retrieval hit-rate and citation accuracy, run in CI. Turns "it worked
-   when I tried it" into a defensible, repeatable metric — the single
-   highest-leverage next step for both product quality and portfolio
-   credibility.
-2. **Parser v2: outline state machine.** Replaces style-name matching with
+1. **Parser v2: outline state machine.** Replaces style-name matching with
    per-branch enumerator-value tracking and successor prediction. Fixes both
    known residual limitations (§6.1). Pure-logic change, no schema impact,
    moderate effort (see `ARCHITECTURE_REVIEW.md` §8 for the exact design).
-3. **Carry Azure DI `spans` through the adapter.** Currently reading order
+2. **Carry Azure DI `spans` through the adapter.** Currently reading order
    is inferred by y-coordinate sort because span offsets are discarded on
    ingestion — carrying them through gives exact reading order and an exact
    text anchor per element for free (useful for future citation
    highlighting). Small, additive schema extension.
-4. **Ingest real SEC EDGAR transaction documents** (ADR-0011) — extends the
+3. **Ingest real SEC EDGAR transaction documents** (ADR-0011) — extends the
    corpus to match the original product vision (merger agreements, S-4s),
    not just litigation about mergers. Requires an HTML→structured-content
    path (two designed options in ADR-0011: convert-to-PDF vs. native HTML
    parser feeding the existing `RawDocument` model).
-5. **Finish Azure deployment** — release the stale OneDeploy operation,
-   deploy the corrected source package, smoke-test the public URL, then add
-   Application Insights and OIDC-based CI/CD. Turns "I can run this locally"
-   into "here's a public URL."
+4. **Secure user-upload eDiscovery workflow.** Requires authenticated
+   workspaces, private Blob storage, malware scanning, asynchronous ingestion,
+   user-scoped retrieval, quotas, retention/deletion, and audit logging.
 6. **Smaller, opportunistic items:** raise the reasoning-token budget
    awareness in prompts (gpt-5-mini spends hidden tokens — observed 64 for
    a one-word reply); add `pytest-cov` + `mypy` (deferred by ADR-0003 until
@@ -207,12 +197,9 @@ don't undo them while improving things:
 
 ## 10. Verification
 
-This file's claims were checked against live state on the date of writing:
-`git log`, `uv run pytest` (139 passed), and `uv run ruff check .`. Azure CLI
-confirmed the existing Document Intelligence/OpenAI resources plus the new
-`rg-legal-rag-prod` resource group, managed identity, private Blob container,
-Basic AI Search service, production Search index, and 390 published chunks.
-The quota was granted and App Service resources were created; the next
-operator action is deployment-lock recovery and a redeploy of the corrected
-package. Re-run these checks rather than trusting this table blindly — it is a
-snapshot, not a live view.
+This file's claims were checked against live state on 2026-07-15: `git log`,
+`uv run pytest` (147 passed), `uv run ruff check .`, and Flask browser/Azure
+smoke tests. Azure production has the public Flask App Service, managed identity,
+private Blob container, Basic AI Search service, production Search index, and
+390 published chunks. Re-run these checks rather than trusting this table
+blindly — it is a snapshot, not a live view.

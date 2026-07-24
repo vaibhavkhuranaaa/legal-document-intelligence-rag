@@ -12,6 +12,7 @@ import re
 
 from legal_rag.rag.azure_openai import AzureOpenAIClient
 from legal_rag.rag.models import Answer, Citation, ScoredChunk
+from legal_rag.rag.source_registry import SourceRegistry
 from legal_rag.rag.store import RetrievalBackend
 
 _SYSTEM_PROMPT = """\
@@ -35,13 +36,18 @@ _NO_EVIDENCE_TEXT = "The provided documents do not contain enough information"
 
 
 class AnswerService:
-    def __init__(self, client: AzureOpenAIClient, store: RetrievalBackend) -> None:
+    def __init__(
+        self,
+        client: AzureOpenAIClient,
+        store: RetrievalBackend,
+        source_registry: SourceRegistry | None = None,
+    ) -> None:
         self._client = client
         self._store = store
+        self._source_registry = source_registry
 
-    def ask(self, question: str, *, k: int = 8) -> Answer:
-        query_vector = self._client.embed([question])[0]
-        results = self._store.search(query_text=question, query_vector=query_vector, k=k)
+    def ask(self, question: str, *, k: int = 8, max_completion_tokens: int | None = None) -> Answer:
+        results = self.retrieve(question, k=k)
 
         if not results:
             return Answer(
@@ -53,15 +59,24 @@ class AnswerService:
 
         context = self._build_context(results)
         user_prompt = f"Context passages:\n\n{context}\n\nQuestion: {question}"
-        raw_answer = self._client.complete(system=_SYSTEM_PROMPT, user=user_prompt)
+        raw_answer = self._client.complete(
+            system=_SYSTEM_PROMPT,
+            user=user_prompt,
+            max_completion_tokens=max_completion_tokens,
+        )
 
         cited_markers = self._extract_markers(raw_answer, limit=len(results))
         citations = [
-            self._citation(marker, results[marker - 1]) for marker in sorted(cited_markers)
+            self.citation_for(marker, results[marker - 1]) for marker in sorted(cited_markers)
         ]
         grounded = bool(citations) and _NO_EVIDENCE_TEXT not in raw_answer
 
         return Answer(question=question, text=raw_answer, citations=citations, grounded=grounded)
+
+    def retrieve(self, question: str, *, k: int = 8) -> list[ScoredChunk]:
+        """Return evidence passages without generating an answer."""
+        query_vector = self._client.embed([question])[0]
+        return self._store.search(query_text=question, query_vector=query_vector, k=k)
 
     @staticmethod
     def _build_context(results: list[ScoredChunk]) -> str:
@@ -77,10 +92,18 @@ class AnswerService:
     def _extract_markers(text: str, *, limit: int) -> set[int]:
         return {int(m) for m in _MARKER_PATTERN.findall(text) if 1 <= int(m) <= limit}
 
-    @staticmethod
-    def _citation(marker: int, scored: ScoredChunk) -> Citation:
+    def citation_for(self, marker: int, scored: ScoredChunk) -> Citation:
         c = scored.chunk
         snippet = c.text[:280] + ("…" if len(c.text) > 280 else "")
+        source = self._source_registry.get(c.document_id) if self._source_registry else None
+        source_kind = source.source_kind if source else "court_pdf"
+        source_url = None
+        if source:
+            source_url = (
+                source.source_page_url(c.page_start)
+                if source.source_kind == "court_pdf"
+                else source.source_section_url(c.source_anchor)
+            )
         return Citation(
             marker=marker,
             document_title=c.document_title,
@@ -89,4 +112,11 @@ class AnswerService:
             page_end=c.page_end,
             chunk_id=c.chunk_id,
             snippet=snippet,
+            source_url=source_url,
+            source_checksum=source.document_id if source else None,
+            source_kind=source_kind,
+            source_anchor=c.source_anchor,
+            accession_number=source.accession_number if source else None,
+            source_start=c.source_start,
+            source_end=c.source_end,
         )

@@ -377,3 +377,53 @@ Chroma+BM25); Azure AI Search becomes a second implementation at the
 deployment milestone with no changes to chunking or answering. The
 `Chunk` schema is versioned separately from `DocumentRecord`, which stays
 frozen.
+
+---
+
+## ADR-0013: Evidence provenance is resolved from the curated source registry
+
+**Context:** Case/section/page citations alone did not give a reviewer a direct
+way to inspect the original public opinion. The Azure Search index identifies a
+document by its content SHA-256, while the curated dataset manifest already
+holds its canonical Delaware court PDF URL and case metadata.
+
+**Decision:** Keep the index schema stable and resolve a retrieved chunk's
+`document_id` against `SourceRegistry` at citation construction time. A
+resolved citation includes canonical HTTPS PDF URL (with a best-effort PDF page
+fragment), source checksum, document title, section path, page range, and
+retrieved excerpt. The registry has an explicit operator URL-reachability
+check, never run during a public web request.
+
+**Consequences:** No model-generated source URL is trusted, no re-ingestion is
+needed to add auditable evidence links to the current corpus, and every later
+corpus release must supply a valid canonical URL and checksum. User uploads are
+explicitly out of scope until authenticated, isolated eDiscovery processing is
+designed.
+
+---
+
+## ADR-0014: Preserve SEC provenance while bounding embedding context
+
+**Context:** A genuine SEC agreement paragraph can exceed the retrieval
+budget. In addition, some parsed SEC heading ancestries exceed the
+8,000-character pre-embedding gate before source text is added. The gate must
+remain fail-closed, while a citation must retain the complete section path,
+official source anchor, and source span.
+
+**Decision:** Split only oversized SEC paragraphs, preferring legal
+sentence/list boundaries and retaining the original text exactly. Each
+fragment keeps its document ID, element ID, full `section_path`, source anchor,
+and enclosing source span. When a full SEC path would leave no room for source
+text in `embed_text`, embed the most-specific contiguous suffix that fits; keep
+the full path in the chunk and citation metadata.
+
+**Alternatives considered:** Truncating source text or weakening the release
+gate (rejected: both conceal release defects); replacing the stored section
+path (rejected: loses evidence provenance); changing the SEC parser hierarchy
+in this bounded release-gate phase (deferred: it is a separate parser-quality
+concern).
+
+**Consequences:** SEC chunks remain reviewer-auditable and every embedding
+payload can satisfy the fixed gate. Retrieval loses only excess ancestor
+context in the exceptional overlong-path case; the nearest section identity,
+full metadata, and all source text remain available.

@@ -1,5 +1,7 @@
 from datetime import UTC, datetime
 
+import pytest
+
 from legal_rag.ingestion.models import (
     DocumentRecord,
     Element,
@@ -7,11 +9,12 @@ from legal_rag.ingestion.models import (
     ExtractionStatus,
     PageInfo,
     ParagraphElement,
+    SecMetadata,
     SourceInfo,
     TableCell,
     TableElement,
 )
-from legal_rag.rag.chunking import chunk_document
+from legal_rag.rag.chunking import MAX_EMBED_TEXT_CHARS, chunk_document, validate_embedding_payloads
 
 
 def _record(elements: list[Element], page_count: int = 3) -> DocumentRecord:
@@ -32,6 +35,21 @@ def _record(elements: list[Element], page_count: int = 3) -> DocumentRecord:
         ],
         structure=[],
         elements=elements,
+    )
+
+
+def _sec_record(elements: list[Element]) -> DocumentRecord:
+    record = _record(elements)
+    return record.model_copy(
+        update={
+            "source": record.source.model_copy(
+                update={
+                    "sec_metadata": SecMetadata(
+                        canonical_url="https://www.sec.gov/Archives/edgar/data/1/example.htm"
+                    )
+                }
+            )
+        }
     )
 
 
@@ -150,3 +168,75 @@ def test_page_range_spans_grouped_paragraphs() -> None:
 
     assert chunks[0].page_start == 1
     assert chunks[0].page_end == 2
+
+
+def test_embedding_payload_guard_rejects_malformed_oversized_chunk() -> None:
+    record = _record([_para("p1", "x" * MAX_EMBED_TEXT_CHARS, path=["I. TERMS"])])
+    chunks = chunk_document(record, title="Case A")
+
+    with pytest.raises(ValueError, match="embedding payload release gate failed"):
+        validate_embedding_payloads(chunks)
+
+
+def test_oversized_sec_paragraph_splits_without_losing_source_text() -> None:
+    text = " ".join(f"The Company shall perform obligation {index}." for index in range(180))
+    record = _sec_record([_para("p1", text, path=["ARTICLE V", "Section 5.1"])])
+
+    chunks = chunk_document(record, title="Example Merger Agreement", max_chars=900)
+
+    assert len(chunks) > 1
+    assert "".join(chunk.text for chunk in chunks) == text
+    assert all(chunk.element_ids == ["p1"] for chunk in chunks)
+    assert all(len(chunk.text) <= 900 for chunk in chunks)
+    validate_embedding_payloads(chunks)
+
+
+def test_oversized_sec_paragraph_prefers_nested_list_boundaries() -> None:
+    list_items = " ".join(
+        f"({letter}) The Company shall satisfy condition {letter} "
+        + "with commercially reasonable efforts. " * 16
+        for letter in ("a", "b", "c", "d")
+    )
+    text = "Opening covenant. " + list_items
+    record = _sec_record([_para("p1", text, path=["ARTICLE V"])])
+
+    chunks = chunk_document(record, title="Example Merger Agreement", max_chars=750)
+
+    assert "".join(chunk.text for chunk in chunks) == text
+    assert any(chunk.text.lstrip().startswith("(b)") for chunk in chunks)
+    assert any(chunk.text.lstrip().startswith("(c)") for chunk in chunks)
+    validate_embedding_payloads(chunks)
+
+
+def test_sec_paragraph_fragments_retain_anchor_and_enclosing_source_span() -> None:
+    text = " ".join(f"The parties agree to clause {index}." for index in range(160))
+    paragraph = ParagraphElement(
+        element_id="p1",
+        page_number=1,
+        section_path=["ARTICLE I"],
+        text=text,
+        source_anchor="section-1",
+        source_start=100,
+        source_end=100 + len(text),
+    )
+
+    chunks = chunk_document(
+        _sec_record([paragraph]), title="Example Merger Agreement", max_chars=700
+    )
+
+    assert len(chunks) > 1
+    assert all(chunk.source_anchor == "section-1" for chunk in chunks)
+    assert all(chunk.source_start == 100 for chunk in chunks)
+    assert all(chunk.source_end == 100 + len(text) for chunk in chunks)
+
+
+def test_sec_embedding_compacts_only_overlong_path_context() -> None:
+    path = ["ARTICLE I"] + [f"Section {index}: " + "x" * 900 for index in range(10)]
+    record = _sec_record([_para("p1", "Binding source text.", path=path)])
+
+    chunk = chunk_document(record, title="Example Merger Agreement")[0]
+
+    assert chunk.section_path == path
+    assert chunk.text == "Binding source text."
+    assert "Section 9:" in chunk.embed_text
+    validate_embedding_payloads([chunk])

@@ -149,3 +149,14 @@ def test_nested_section_content_is_checked() -> None:
 
     assert result.is_valid is False
     assert any("references unknown element_id" in error for error in result.errors)
+
+
+def test_malformed_section_path_and_incomplete_span_are_rejected() -> None:
+    record = _valid_record()
+    malformed = record.structure[0].model_copy(update={"path": ["wrong"]})
+    element = record.elements[0].model_copy(update={"source_start": 5})
+    result = validate(record.model_copy(update={"structure": [malformed], "elements": [element]}))
+
+    assert result.is_valid is False
+    assert any("malformed heading path" in error for error in result.errors)
+    assert any("incomplete source span" in error for error in result.errors)

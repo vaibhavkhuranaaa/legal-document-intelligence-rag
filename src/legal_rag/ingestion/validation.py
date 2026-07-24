@@ -84,6 +84,58 @@ def _check_section_content_references_exist(record: DocumentRecord) -> list[str]
     return errors
 
 
+def _check_source_spans(record: DocumentRecord) -> list[str]:
+    errors: list[str] = []
+    for element in record.elements:
+        if (element.source_start is None) != (element.source_end is None):
+            errors.append(f"element {element.element_id} has an incomplete source span")
+        if (
+            element.source_start is not None
+            and element.source_end is not None
+            and element.source_end <= element.source_start
+        ):
+            errors.append(f"element {element.element_id} has an invalid source span")
+    return errors
+
+
+def _check_sections_are_well_formed(record: DocumentRecord) -> list[str]:
+    errors: list[str] = []
+    seen_ids: set[str] = set()
+
+    def walk(sections: list[Section], parent: Section | None = None) -> None:
+        for section in sections:
+            if section.section_id in seen_ids:
+                errors.append(f"duplicate section_id {section.section_id}")
+            seen_ids.add(section.section_id)
+            expected_path = [*parent.path, section.heading] if parent else [section.heading]
+            if section.path != expected_path:
+                errors.append(f"section {section.section_id} has a malformed heading path")
+            if parent and section.level <= parent.level:
+                errors.append(f"section {section.section_id} is not nested below its parent")
+            if not section.content:
+                errors.append(f"section {section.section_id} is orphaned from extracted content")
+            walk(section.children, section)
+
+    walk(record.structure)
+    return errors
+
+
+def _check_sec_locators(record: DocumentRecord) -> list[str]:
+    if record.source.sec_metadata is None:
+        return []
+    errors: list[str] = []
+    if not record.source.sec_metadata.canonical_url:
+        errors.append("SEC document is missing its canonical source URL")
+    headings = [element for element in record.elements if isinstance(element, HeadingElement)]
+    anchors = [heading.source_anchor for heading in headings if heading.source_anchor]
+    if len(anchors) != len(set(anchors)):
+        errors.append("SEC document contains duplicate heading anchors")
+    for element in record.elements:
+        if element.source_start is None or element.source_end is None:
+            errors.append(f"SEC element {element.element_id} has no exact source span")
+    return errors
+
+
 _CHECKS: list[Callable[[DocumentRecord], list[str]]] = [
     _check_has_pages,
     _check_page_count_matches_pages,
@@ -92,6 +144,9 @@ _CHECKS: list[Callable[[DocumentRecord], list[str]]] = [
     _check_element_page_numbers_in_range,
     _check_non_empty_text,
     _check_section_content_references_exist,
+    _check_source_spans,
+    _check_sections_are_well_formed,
+    _check_sec_locators,
 ]
 
 

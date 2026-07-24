@@ -75,6 +75,8 @@ def _convert_paragraph(paragraph: DocumentParagraph) -> RawParagraph:
         role=_ROLE_MAP.get(role_value, RawParagraphRole.TEXT),
         page_number=_first_page_number(paragraph.bounding_regions, element_kind="paragraph"),
         bounding_regions=_convert_bounding_regions(paragraph.bounding_regions),
+        source_start=_span_start(paragraph),
+        source_end=_span_end(paragraph),
     )
 
 
@@ -94,7 +96,23 @@ def _convert_table(table: DocumentTable) -> RawTable:
             for cell in table.cells
         ],
         bounding_regions=_convert_bounding_regions(table.bounding_regions),
+        source_start=_span_start(table),
+        source_end=_span_end(table),
     )
+
+
+def _span_start(item: object) -> int | None:
+    spans = getattr(item, "spans", None) or []
+    return getattr(spans[0], "offset", None) if spans else None
+
+
+def _span_end(item: object) -> int | None:
+    spans = getattr(item, "spans", None) or []
+    if not spans:
+        return None
+    start = getattr(spans[0], "offset", None)
+    length = getattr(spans[0], "length", None)
+    return start + length if start is not None and length is not None else None
 
 
 def to_raw_document(result: AnalyzeResult) -> RawDocument:

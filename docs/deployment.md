@@ -6,19 +6,24 @@ in [`roadmap.md`](./roadmap.md).
 
 ## Runtime contract
 
-The public application is the Streamlit UI only. It serves a previously built
-search index and must never ingest documents or create embeddings during a web
-request.
+The public application serves a previously built search index and must never
+ingest documents or create embeddings during a web request. The live runtime is
+the Flask/Gunicorn research workspace.
 
 Azure App Service on Linux uses [`startup.txt`](../startup.txt) as its custom
 startup command:
 
 ```text
-python -m streamlit run src/legal_rag/ui/streamlit_app.py --server.address 0.0.0.0 --server.port 8000
+gunicorn --bind 0.0.0.0:8000 --timeout 120 legal_rag.ui.flask_app:app
 ```
 
 The file is versioned so the same command is used in every environment. App
-Service must be configured to use it as the startup command.
+Service must be configured to use it as the startup command. The 120-second
+Gunicorn worker timeout is intentional: a synchronous request performs Azure
+AI Search and Azure OpenAI calls, which must not be killed by Gunicorn's
+30-second default. The first process start after ZIP deployment can take about
+a minute while Oryx prepares the environment; allow 90 seconds before treating
+a startup check as failed.
 
 `pyproject.toml` and `uv.lock` remain the dependency source of truth. The
 root [`requirements.txt`](../requirements.txt) is a committed App Service
@@ -54,7 +59,8 @@ not add secrets to this repository or to `startup.txt`.
 production adapters. Their Azure resources and RBAC assignments are provisioned
 in the production resource group; retain `chroma` and `local` for development.
 
-The production index is named `legal-rag-chunks`. It exposes these fields: `chunk_id` (key), document
+The promoted production index is named `legal-rag-chunks-r3`; r2 is retained as
+the rollback index. It exposes these fields: `chunk_id` (key), document
 and citation metadata, `text`/`embed_text` (searchable), `embedding` (vector),
 and the collection fields `section_path` and `element_ids`. Index provisioning
 is intentionally separate from application startup, so a web request cannot
@@ -64,7 +70,8 @@ Current production resources are in `rg-legal-rag-prod` (East US): the
 `asp-legal-rag-prod` Linux B1 plan, `app-legal-rag-prod-278f1d` web app,
 `id-legal-rag-prod` user-assigned identity, `stlegalragprod278f1d` private
 storage account, and `srch-legal-rag-prod-278f1d` Search service. The Search
-index contains the currently approved 390 public chunks.
+index contains the currently approved 3,055 public chunks (1,468 Delaware
+opinion chunks and 1,587 SEC agreement chunks).
 
 ## Corpus release procedure
 
@@ -76,8 +83,12 @@ deployment:
 2. Run ingestion against the controlled source location.
 3. Validate the structured records and inspect failures/warnings.
 4. Build the production retrieval index from the validated records.
-5. Run retrieval and citation smoke tests against the candidate index.
-6. Promote the index only after the checks pass; record its manifest/version.
+5. Run `legal-rag-validate-corpus --check-urls`; reject the release if a
+   canonical public source is unavailable.
+6. Run `legal-rag-evaluate` against the configured production index and review the written
+   report before publishing aggregate metrics to `data/evaluation/latest.json`.
+7. Run retrieval and citation smoke tests against the configured production index.
+8. Promote the index only after the checks pass; record its manifest/version.
 
 The public app continues to serve the last promoted index if a corpus release
 fails.
@@ -95,3 +106,6 @@ After deployment, verify that the app loads, reports a nonzero indexed-chunk
 count, answers a known corpus question with citations, and refuses an unrelated
 question. Check App Service logs and Application Insights for startup or
 dependency failures.
+
+Also verify `/healthz`, `/corpus`, `/evaluation`, and an Evidence card's
+canonical PDF page link. The live URL must remain unchanged.

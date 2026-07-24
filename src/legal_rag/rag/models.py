@@ -27,6 +27,9 @@ class Chunk(BaseModel):
     section_path: list[str] = Field(default_factory=list)
     page_start: int
     page_end: int
+    source_anchor: str | None = None
+    source_start: int | None = None
+    source_end: int | None = None
     element_ids: list[str]
     chunk_type: Literal["text", "table"]
     text: str
@@ -48,6 +51,13 @@ class Citation(BaseModel):
     page_end: int
     chunk_id: str
     snippet: str
+    source_url: str | None = None
+    source_checksum: str | None = None
+    source_kind: Literal["court_pdf", "sec_html"] = "court_pdf"
+    source_anchor: str | None = None
+    accession_number: str | None = None
+    source_start: int | None = None
+    source_end: int | None = None
 
     @property
     def display(self) -> str:
@@ -57,7 +67,8 @@ class Citation(BaseModel):
             if self.page_start == self.page_end
             else f"pp. {self.page_start}–{self.page_end}"
         )
-        return f"{self.document_title} — {section} ({pages})"
+        location = pages if self.source_kind == "court_pdf" else section
+        return f"{self.document_title} — {section} ({location})"
 
 
 class Answer(BaseModel):

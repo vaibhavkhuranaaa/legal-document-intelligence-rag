@@ -1,0 +1,154 @@
+# SEC corpus-release handoff
+
+Last updated: 2026-07-16
+
+## Current safe state
+
+- The public Flask app serves `legal-rag-chunks-r3`: 3,055 chunks comprising
+  1,468 Delaware opinion chunks and 1,587 SEC agreement chunks.
+- `legal-rag-chunks-r2` remains intact with 1,468 Delaware opinion chunks as
+  the rollback target.
+- Six official SEC EX-2.1 inputs are checksum-registered in
+  `data/dataset_manifest.json`. Their local source and processed artifacts are
+  ignored and must never be committed.
+
+## Phase 6.1 completed locally
+
+The initial r3 rehearsal did not reveal a general Azure capacity problem. It
+revealed malformed release payloads:
+
+- Before repair, 3,137 chunks contained 288,443,966 embedding characters; the
+  largest was 2,516,683 characters from Broadcom/VMware.
+- Cause one: HTMLParser does not apply browser implied-end-tag rules. An
+  unclosed EDGAR `<p>` capture absorbed later document content and became a
+  false heading/path. This is repaired in `ingestion/sec_edgar.py`.
+- After the implied-block repair, genuine agreement paragraphs still exceeded
+  the retrieval budget. `rag/chunking.py` now splits only individual SEC
+  paragraphs, preferring legal sentence and list boundaries. It preserves the
+  original text exactly, plus the document ID, element ID, full section path,
+  official anchor, and enclosing source span.
+- Some legacy SEC section paths are themselves too large to embed alongside
+  source text. Their full value remains in `Chunk.section_path`; only the
+  embedding context uses the most-specific suffix that fits the hard gate.
+  No source text or citation metadata is truncated.
+- `rag/chunking.py` now blocks any embedding payload above 8,000 characters
+  before it can call Azure OpenAI. This guard is intentional and must remain.
+
+## Local verification (2026-07-16)
+
+- Regenerated all six ignored local SEC `DocumentRecord`s from the already
+  downloaded approved inputs only. Each source checksum and generated document
+  ID match `data/dataset_manifest.json`; all six records validate.
+- The repaired SEC corpus contains **1,587 chunks**. Its largest `embed_text`
+  is **7,999 characters**; the 8,000-character release gate passes.
+- Ruff and the full test suite passed locally. No Azure indexing, evaluation,
+  browser verification, app-setting change, or promotion was performed.
+
+## Next approved phase: clean staged r3 rebuild
+
+Use a new checkpoint; the old
+`/private/tmp/legal-rag-r3-embeddings.json.gz` is incompatible with this
+corpus build:
+
+```bash
+RETRIEVAL_BACKEND=azure_ai_search \
+AZURE_SEARCH_INDEX_NAME=legal-rag-chunks-r3 \
+AZURE_SEARCH_SOURCE_LOCATIONS_ENABLED=true \
+uv run legal-rag-index \
+  --embedding-checkpoint /private/tmp/legal-rag-r3-phase61-embeddings.json.gz
+
+# Requires the operator's real organization/contact identity; never invent one.
+uv run legal-rag-validate-corpus --check-urls \
+  --sec-user-agent "Organization contact@example.com"
+```
+
+Before any promotion, confirm the clean r3 build, run the Azure-backed
+evaluation, verify browser Evidence links against the official SEC sources,
+and review all results. Production remains `legal-rag-chunks-r2` until each
+gate passes.
+
+## Staged-release attempt (2026-07-16)
+
+- A clean r3 rebuild completed using the new
+  `/private/tmp/legal-rag-r3-phase61-final-embeddings.json.gz` checkpoint.
+  `legal-rag-chunks-r3` contains 3,055 chunks (the 1,468 approved Delaware
+  chunks plus the 1,587 staged SEC chunks). Production r2 remains unchanged
+  at 1,468 chunks.
+- Browser verification loaded the Microsoft/Activision official EX-2.1 URL
+  and displayed the agreement. The SEC-compatible URL check subsequently
+  passed for all 20 public sources with the declared `Data Org` contact
+  identity.
+- `gold-qa-v2-delaware-expansion` was attempted twice against r3 and received
+  an Azure OpenAI HTTP 429 rate-limit response from `gpt-5-mini` both times;
+  neither attempt produced a report. Do not promote r3. Resolve the sustained
+  evaluation capacity constraint before another attempt.
+
+## Evaluation pacing repair
+
+- The release evaluator now keeps `k=8` but uses an evaluation-only
+  2,400-token completion cap and a 45-second delay between chat requests. It
+  does not change the public application's 4,000-token answer setting.
+- Chat completions now retry HTTP 429 responses using Azure's `retry-after`
+  guidance. The evaluator checkpoints each completed question locally, so an
+  interrupted run resumes without repeating completed requests.
+
+```bash
+RETRIEVAL_BACKEND=azure_ai_search \
+AZURE_SEARCH_ENDPOINT=https://srch-legal-rag-prod-278f1d.search.windows.net \
+AZURE_SEARCH_INDEX_NAME=legal-rag-chunks-r3 \
+AZURE_SEARCH_SOURCE_LOCATIONS_ENABLED=true \
+uv run legal-rag-evaluate --gold data/evaluation/gold_qa_v2.json \
+  --output /private/tmp/legal-rag-r3-phase61-evaluation.json
+```
+
+## Final staged r3 evaluation and evidence verification (2026-07-16)
+
+- The checkpointed paced benchmark completed against `legal-rag-chunks-r3`.
+  `gold-qa-v2-delaware-expansion` reported 100% retrieval hit rate@8 (45/45)
+  and 100% citation-provenance validity (45/45); every result contained at
+  least one provenance-valid citation. The report is local-only at
+  `/private/tmp/legal-rag-r3-phase61-evaluation-2400.json`.
+- The initial process ended between questions 43 and 44 without a recorded
+  application or Azure service error. The persisted checkpoint resumed the
+  final two questions and produced the complete report.
+- The release operator manually verified that all six official SEC EX-2.1
+  evidence URLs load the corresponding agreement. This supplements—not
+  replaces—the automated 20-source SEC-compatible URL check.
+- These checks validate retrieval and citation provenance, not legal-answer
+  correctness or legal advice. They were the pre-promotion gates for r3.
+
+## Promotion attempt and rollback (2026-07-16)
+
+- Switching the live index setting to r3 first exposed that the older deployed
+  app artifact contained only the 14 Delaware source-registry entries. The
+  setting was immediately restored to r2; no r3 content was published.
+- The current tracked app artifact was then deployed while it remained on r2,
+  and its corpus register correctly exposed all six SEC agreements. A live
+  `/ask` smoke test nevertheless returned HTTP 500. App Service logs show
+  Gunicorn's 30-second default worker timeout killed the request during Azure
+  OpenAI client initialization; the same failure occurred for an r2 Delaware
+  question, so it is not an r3 or SEC-provenance failure.
+- The r2 setting was restored and the app was restarted successfully.
+
+## Completed r3 promotion (2026-07-16)
+
+- The versioned 120-second Gunicorn timeout was deployed after Ruff and the
+  full 175-test suite passed. It prevents the existing synchronous Azure AI
+  Search/Azure OpenAI request path from being killed by Gunicorn's 30-second
+  default worker timeout.
+- An r2 Delaware research smoke test returned HTTP 200 with grounded canonical
+  court citations. The app was then restarted with
+  `AZURE_SEARCH_INDEX_NAME=legal-rag-chunks-r3` so the in-memory retrieval
+  backend reloaded the promoted index.
+- The final Microsoft/Activision regulatory-approvals smoke test returned HTTP
+  200 with grounded Article VII and Article VI evidence and official SEC filing
+  links. r3 is the live index; r2 remains the rollback target.
+
+## Do not do
+
+- Do not modify the live r3 index or App Service retrieval setting without a
+  new release gate and explicit approval; use r2 as the rollback target.
+- Do not reuse `/private/tmp/legal-rag-r3-embeddings.json.gz` after chunk
+  identities change.
+- Do not solve the issue by truncating agreement text, inventing page numbers,
+  or weakening the size gate.
