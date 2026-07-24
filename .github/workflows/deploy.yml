@@ -59,12 +59,13 @@ jobs:
           --type zip
           --restart true
       - name: Stamp deployed source revision
-        run: >
-          az webapp config appsettings set
-          --resource-group "$RESOURCE_GROUP"
-          --name "$WEB_APP"
-          --settings "PORTFOLIO_SOURCE_SHA=$SOURCE_SHA"
-          --output none
+        run: |
+          az webapp config appsettings set \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$WEB_APP" \
+            --settings "PORTFOLIO_SOURCE_SHA=$SOURCE_SHA" \
+            --output none
+          az webapp restart --resource-group "$RESOURCE_GROUP" --name "$WEB_APP"
       - name: Verify live deployment
         run: |
           for attempt in $(seq 1 30); do
