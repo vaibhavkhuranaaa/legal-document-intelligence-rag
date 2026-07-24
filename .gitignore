@@ -64,3 +64,6 @@ Thumbs.db
 
 # Derived local agent context
 graphify-out/
+.agent-audit/
+.claude/
+CLAUDE.md

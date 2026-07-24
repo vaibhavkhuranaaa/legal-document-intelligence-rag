@@ -1,11 +1,43 @@
+%% portfolio-architecture: v1
 flowchart LR
-  Sources["Registered public court PDFs and SEC HTML"] --> Extract["Azure Document Intelligence or native SEC parser"]
-  Extract --> Records["Versioned document records"]
-  Records --> Chunks["Structure-aware public chunks"]
-  Chunks --> Search["Azure AI Search promoted index"]
-  Search --> Answer["Azure OpenAI grounded answer service"]
-  Answer --> App["Read-only Flask evidence workspace"]
-  App --> Citations["Canonical source, section, page, and checksum"]
-  Evaluation["Versioned release evaluation"] --> Search
-  Identity["Managed identity and Azure resource boundary"] --> Search
-  Identity --> Answer
+  Researcher(["Legal researcher / reviewer"])
+  Court[("Registered public court PDFs")]
+  SEC[("Registered public SEC HTML")]
+
+  subgraph Ingestion["Public-source validation and ingestion boundary"]
+    Registry("Source URL, checksum, and classification validation")
+    PDF("Azure Document Intelligence adapter")
+    HTML("Native SEC HTML adapter")
+    Records[("Versioned document records")]
+    Chunks[("Structure-aware public chunks")]
+  end
+
+  subgraph Azure["Azure managed-identity boundary"]
+    Blob[("Azure Blob Storage")]
+    Search[("Azure AI Search promoted index")]
+    Answer("Azure OpenAI evidence-constrained answer service")
+    App("Read-only Flask evidence workspace")
+    Observe("Health, release checks, and aggregate evaluation")
+  end
+
+  Evaluation("Versioned 45-question release evaluation")
+  Citations("Answer or refusal + canonical source, section, page, and checksum")
+  Identity{{"Microsoft Entra managed identity"}}
+
+  Researcher --> App --> Answer --> Search --> Citations --> Researcher
+  Court --> Registry --> PDF --> Records --> Chunks --> Search
+  SEC --> Registry --> HTML --> Records
+  Records --> Blob
+  Identity -. identity control .-> Search
+  Identity -. identity control .-> Answer
+  Identity -. identity control .-> Blob
+  Evaluation -. evidence .-> Search
+  Evaluation -. regression control .-> Answer
+  Observe -. monitoring .-> App
+  Observe -. release control .-> Search
+
+  subgraph Legend["Legend"]
+    L1("Service / processing") --> L2[("Persistent data")]
+    L3("Optional / asynchronous") -.-> L4{{"External hosted service"}}
+    L5("Monitoring / evidence") -.-> L6("Control flow")
+  end
