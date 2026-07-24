@@ -100,7 +100,7 @@ jobs:
           PORTFOLIO_REPOSITORY: ${{ vars.PORTFOLIO_REPOSITORY }}
         run: >
           gh api --method POST "repos/${PORTFOLIO_REPOSITORY}/dispatches"
-          -f event_type=project-manifest-ready
+          -f event_type=project-release-ready
           -f client_payload[repository]="$GITHUB_REPOSITORY"
           -f client_payload[ref]="${{ inputs.source_sha }}"
           -f client_payload[manifest_path]="portfolio/project.json"
