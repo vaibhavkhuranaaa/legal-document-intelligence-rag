@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import cached_property
@@ -262,7 +263,11 @@ def create_app(
 
     @app.get("/healthz")
     def healthz():
-        return {"status": "ok", "service": "legal-document-intelligence"}
+        return {
+            "status": "ok",
+            "service": "legal-document-intelligence",
+            "source_sha": os.getenv("PORTFOLIO_SOURCE_SHA"),
+        }
 
     return app
 

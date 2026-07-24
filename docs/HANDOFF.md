@@ -1,5 +1,9 @@
 # Handoff
 
+## Minimal resume
+
+Read `AGENTS.md`, `docs/STATE.md`, this file, and only the paths named by the task. Public release uses `portfolio/release.json` and `.github/workflows/deploy.yml`; it requires an approved exact SHA and explicit approval for the existing paid Azure target. Do not provision new resources.
+
 Read `README.md`, `docs/STATE.md`, `docs/deployment.md`, the v2 manifest, and fresh Graphify output before changing release facts.
 
 Approved portfolio source: `feeefeba500881f6624edf984340f618b2b41bb8`. On 2026-07-23, explicit owner approval changed the GitHub repository to public; anonymous checks returned HTTP 200 for the repository, exact commit, and live demo. The approved site, résumé, and index catalogs now agree on this revision.

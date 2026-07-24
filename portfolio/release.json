@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "status": "enabled",
+  "provider": "Azure App Service",
+  "workflow": "deploy.yml",
+  "deploymentTarget": "app-legal-rag-prod-278f1d",
+  "paidResource": true,
+  "costApprovalRequired": true
+}
