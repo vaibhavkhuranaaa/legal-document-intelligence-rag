@@ -20,11 +20,11 @@ _FILING = SecFilingInput(
 
 def test_native_html_parser_preserves_heading_anchor_table_and_malformed_tail() -> None:
     raw = parse_edgar_html(
-        b'''<html><body><h1 id="article-one">ARTICLE I</h1><p>Merger terms.</p>
+        b"""<html><body><h1 id="article-one">ARTICLE I</h1><p>Merger terms.</p>
         <ul><li id="condition-a">Condition A</li></ul>
         <table id="consideration"><tr><th>Cash</th><th>Stock</th></tr>
         <tr><td>$10</td><td>0.2</td></tr></table>
-        <p id="unterminated">Closing condition'''
+        <p id="unterminated">Closing condition"""
     )
 
     assert raw.paragraphs[0].role == "sectionHeading"

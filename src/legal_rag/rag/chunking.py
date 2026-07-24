@@ -59,9 +59,7 @@ def _embed_text(title: str, section_path: list[str], text: str) -> str:
     return f"{prefix}\n\n{text}"
 
 
-def _embedding_section_path(
-    title: str, section_path: list[str], *, text_chars: int
-) -> list[str]:
+def _embedding_section_path(title: str, section_path: list[str], *, text_chars: int) -> list[str]:
     """Keep the most-specific SEC path that can coexist with source text.
 
     The full path remains on ``Chunk.section_path`` for citations and evidence.
@@ -177,9 +175,7 @@ class _ChunkBuilder:
                 text,
                 title=self._title,
                 section_path=(
-                    _embedding_section_path(
-                        self._title, path, text_chars=self._max_chars
-                    )
+                    _embedding_section_path(self._title, path, text_chars=self._max_chars)
                     if self._is_sec_html
                     else path
                 ),
