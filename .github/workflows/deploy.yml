@@ -65,7 +65,8 @@ jobs:
             --name "$WEB_APP" \
             --settings "PORTFOLIO_SOURCE_SHA=$SOURCE_SHA" \
             --output none
-          az webapp restart --resource-group "$RESOURCE_GROUP" --name "$WEB_APP"
+          az webapp stop --resource-group "$RESOURCE_GROUP" --name "$WEB_APP" --output none
+          az webapp start --resource-group "$RESOURCE_GROUP" --name "$WEB_APP" --output none
       - name: Verify live deployment
         run: |
           for attempt in $(seq 1 30); do
