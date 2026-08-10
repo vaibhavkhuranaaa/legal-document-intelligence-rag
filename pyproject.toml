@@ -1,0 +1,71 @@
+[project]
+name = "legal-rag"
+version = "0.1.0"
+description = "Production-grade Retrieval-Augmented Generation system over public legal documents, built on Azure."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Vaibhav Khurana" }]
+classifiers = [
+    "Private :: Do Not Upload",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "azure-ai-documentintelligence>=1.0.0",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.4",
+]
+
+[project.scripts]
+legal-rag-ingest = "legal_rag.ingestion.cli:main"
+
+[project.optional-dependencies]
+# Populated in later phases as each integration is implemented and approved.
+azure = []
+langchain = []
+vectorstore = []
+ui = []
+
+[dependency-groups]
+dev = ["ruff>=0.6", "pytest>=8.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/legal_rag"]
+
+[tool.uv]
+required-version = ">=0.5"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "S",   # flake8-bandit (security)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["legal_rag"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]  # assert is expected in tests
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
