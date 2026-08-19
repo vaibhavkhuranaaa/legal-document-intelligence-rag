@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Method | Legal document intelligence{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div class="heading-index"><span>Method</span><strong>05</strong></div>
+  <div><p class="section-kicker">Research method</p><h1>Question, evidence, record.</h1></div>
+  <p>The workspace helps you locate relevant public source material and then inspect the original wording yourself.</p>
+</section>
+
+<section class="process-register" aria-labelledby="process-heading">
+  <header><span class="panel-code">REVIEW SEQUENCE</span><h2 id="process-heading">A three-stage research pass</h2></header>
+  <ol>
+    <li><span>01</span><div><h3>Frame one focused question</h3><p>Name a company, agreement, case, court, or legal issue. A narrow brief produces a more reviewable source set.</p></div><em>Input</em></li>
+    <li><span>02</span><div><h3>Read the bounded response</h3><p>Treat the response as a starting point limited to the public source material displayed with it.</p></div><em>Analysis</em></li>
+    <li><span>03</span><div><h3>Check the public record</h3><p>Open the cited court opinion or SEC filing section and read the original wording before relying on it.</p></div><em>Review</em></li>
+  </ol>
+</section>
+
+<section class="score-register">
+  <header><span class="panel-code">SCORE INTERPRETATION</span><h2>Two signals, narrow meanings</h2></header>
+  <dl>
+    <div><dt>Source match</dt><dd>Confirms whether citations shown with a response resolve to the registered public record.</dd></div>
+    <div><dt>Source relevance</dt><dd>Orders retrieved passages for the question within one result set.</dd></div>
+  </dl>
+  <p>Neither signal is a legal-correctness grade or legal advice.</p>
+</section>
+{% endblock %}

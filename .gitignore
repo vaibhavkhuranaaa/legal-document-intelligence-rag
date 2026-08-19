@@ -1,0 +1,89 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+
+# uv
+# (uv.lock is intentionally NOT ignored — it is committed for reproducible installs)
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Testing / tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Data (public corpus is downloaded/reproducible, not committed)
+# Directory structure is preserved via .gitkeep; contents are not.
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/failed/*
+!data/failed/.gitkeep
+
+# Run logs and manifest reports
+logs/*
+!logs/.gitkeep
+
+# Generated artifacts (structure preserved via .gitkeep; contents are not)
+artifacts/*
+!artifacts/.gitkeep
+
+# Vector store persistence
+.chroma/
+chroma_db/
+
+# Streamlit (config.toml is fine to commit; secrets.toml is credentials)
+.streamlit/secrets.toml
+
+# Azure CLI / azd local state
+.azure/
+
+# IDE / OS
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+
+# Local tooling policy
+.gemini/
+**/.gemini/
+.windsurf/
+**/.windsurf/
+.roo/
+**/.roo/
+.continue/
+**/.continue/
+.windsurfrules
+**/.windsurfrules
+.aider*
+**/.aider*
+.github/prompts/
+.github/agents/
+.github/**/*.agent.md
+.project/graph-source.sha256
+docs/PROJECT_CONTEXT.md
+docs/takeover-prompt.md
+docs/continuation-guide.md
+docs/NEXT_CHAT_PROMPT.md
+docs/resume-instructions.md
+.vscode/tasks.json
+.project/

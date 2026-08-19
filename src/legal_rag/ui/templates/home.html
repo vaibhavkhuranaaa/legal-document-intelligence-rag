@@ -1,0 +1,111 @@
+<!--
+THESIS: A filing-review ledger replaces the generic hero and card dashboard.
+OWN-WORLD: Cool paper, carbon ink, registry blue, ruled records, square controls.
+STORY: Frame one question, inspect bounded analysis, then open the source record.
+FIRST VIEWPORT: Research brief left; live collection register right; action inside the brief.
+FORM: Filing Review Ledger, assigned third grounded direction; asymmetric workbench staging; seed 3eed0cdd.
+-->
+{% extends "base.html" %}
+{% block content %}
+{% if answer %}
+<section class="result-context" aria-labelledby="result-context-heading">
+  <div>
+    <span class="panel-code">QUESTION ON RECORD</span>
+    <h1 id="result-context-heading">{{ question }}</h1>
+  </div>
+  <a href="{{ url_for('home') }}">Ask another question</a>
+</section>
+{% else %}
+<section class="workspace-heading" aria-labelledby="workspace-title">
+  <div class="heading-index"><span>Workspace</span><strong>01</strong></div>
+  <div>
+    <p class="section-kicker">Public-source legal research</p>
+    <h1 id="workspace-title">Research the record,<br>line by line.</h1>
+  </div>
+  <p class="heading-brief">Search the registered public collection. Every response stays attached to its source.</p>
+</section>
+
+<section class="research-workbench" aria-labelledby="research-heading">
+  <div class="query-desk">
+    <header class="panel-heading">
+      <div><span class="panel-code">BRIEF / 01</span><h2 id="research-heading">Research question</h2></div>
+      <span class="panel-instruction">One issue per search</span>
+    </header>
+    <form action="{{ url_for('ask') }}" method="post" data-submit-state>
+      <label class="question-label" for="question"><span>Question for the public record</span><span class="keyboard-hint"><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd></span></label>
+      <textarea id="question" name="question" required maxlength="2000" aria-describedby="question-safety question-count" placeholder="What did the Delaware Supreme Court hold about deal price in the Dell appraisal?">{{ question }}</textarea>
+      <div class="form-actions">
+        <span id="question-safety">Public questions only. Do not enter confidential or privileged information.</span>
+        <button type="submit" data-loading-label="Searching record">Search the record</button>
+      </div>
+      <div class="question-meta">
+        <span>Read the cited sources before relying on a response.</span>
+        <output id="question-count" for="question"><span data-character-count>{{ question|length }}</span>/2,000 characters</output>
+      </div>
+    </form>
+    {% if error %}<div class="notice error" role="alert"><strong>Search unavailable</strong><span>{{ error }}</span></div>{% endif %}
+    <div class="examples" aria-label="Example questions">
+      <div class="examples-heading"><span>Issue prompts</span><small>Use as written or refine</small></div>
+      <ol>
+        {% for example in ["What conditions must be met before the Microsoft and Activision merger can close?", "How did the Delaware Supreme Court treat deal price in the Dell appraisal?", "What did the court decide about a material adverse effect in Akorn?"] %}
+        <li><a href="{{ url_for('home', q=example) }}"><span>{{ "%02d"|format(loop.index) }}</span><strong>{{ example }}</strong><i aria-hidden="true">Use question</i></a></li>
+        {% endfor %}
+      </ol>
+      <p class="visually-hidden">Try an example:</p>
+      <p class="question-tip"><strong>Tip:</strong> Name a company, case, agreement, or legal issue. Ask one focused question at a time.</p>
+    </div>
+  </div>
+
+  <aside class="collection-register" aria-labelledby="collection-heading">
+    <header class="panel-heading compact"><div><span class="panel-code">REGISTER / CURRENT</span><h2 id="collection-heading">Collection register</h2></div></header>
+    <dl class="register-list">
+      <div><dt>Registered sources</dt><dd><strong>{{ source_count }}</strong><span>official court and filing records</span></dd></div>
+      <div><dt>Searchable excerpts</dt><dd><strong>{{ chunk_count if chunk_count is not none else "Unavailable" }}</strong><span>from the promoted public collection</span></dd></div>
+      <div><dt>Source authority</dt><dd><strong>Direct</strong><span>canonical court and SEC links</span></dd></div>
+    </dl>
+    <div class="register-note">
+      <span class="panel-code">ANALYSIS BOUNDARY</span>
+      <p>The workspace checks retrieval and source traceability. It does not grade legal correctness or provide legal advice.</p>
+    </div>
+    <div class="register-links"><a href="{{ url_for('corpus') }}">Inspect source register</a><a href="{{ url_for('evaluation') }}">Review release checks</a></div>
+  </aside>
+</section>
+{% endif %}
+
+{% if answer %}
+<section class="analysis-docket" aria-labelledby="answer-heading" data-analysis-result>
+  <header class="docket-heading">
+    <div><span class="panel-code">ANALYSIS / {{ "CITATIONS ATTACHED" if answer.grounded else "INCOMPLETE" }}</span><h2 id="answer-heading" tabindex="-1">Findings on the question</h2></div>
+    <a href="{{ url_for('evidence', q=question) }}">Open evidence review</a>
+  </header>
+  <div class="analysis-grid">
+    <article class="answer-sheet">
+      <p class="question-on-record"><span>Question</span>{{ question }}</p>
+      <div class="answer-text">{{ answer.text }}</div>
+    </article>
+    <aside class="source-match" aria-label="Citation-link coverage">
+      <span class="panel-code">CITATION LINKS / {{ "COMPLETE" if answer_match.score == 100 else "INCOMPLETE" }}</span>
+      <p class="coverage-summary"><strong>{{ answer_match.cited_source_count }}</strong> of <strong>{{ answer.citations|length }}</strong> cited {{ "record links" if answer.citations|length == 1 else "records link" }} to a public source.</p>
+      <p>{{ answer_match.detail }}</p>
+      <small>This verifies public-link availability only. It does not measure legal correctness.</small>
+    </aside>
+  </div>
+  {% if answer.citations %}
+  <div class="ledger-heading"><h3>Sources cited in this answer</h3><span>{{ answer.citations|length }} {{ "record" if answer.citations|length == 1 else "records" }}</span></div>
+  <ol class="citation-ledger">
+    {% for citation in answer.citations %}
+    <li>
+      <div class="citation-index">[{{ citation.marker }}]</div>
+      <article>
+        <div class="citation-coordinate"><span>{{ citation|source_location }}</span><span>{{ citation.section_path|join(' › ') if citation.section_path else "Document body" }}</span></div>
+        <h4>{{ citation.document_title }}</h4>
+        <p>{{ citation.snippet }}</p>
+        <div class="citation-actions"><a href="{{ url_for('evidence', q=question) }}#evidence-{{ citation.marker }}">Review source excerpt</a>{% if citation.source_url %}<a href="{{ citation.source_url }}" target="_blank" rel="noopener noreferrer">{{ "Open official filing section" if citation.source_kind == "sec_html" else "Open original opinion" }} ↗</a>{% endif %}</div>
+      </article>
+    </li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

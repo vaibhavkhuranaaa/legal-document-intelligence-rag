@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "status": "enabled",
+  "provider": "Azure App Service",
+  "workflow": "deploy.yml",
+  "deploymentTarget": "app-legal-rag-prod-278f1d",
+  "publicProject": true,
+  "verification": {
+    "url": "https://app-legal-rag-prod-278f1d.azurewebsites.net/healthz",
+    "sourceShaField": "source_sha"
+  },
+  "paidResource": true,
+  "costApprovalRequired": false
+}

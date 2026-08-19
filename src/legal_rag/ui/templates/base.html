@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101820">
+    <title>{% block title %}Legal document intelligence{% endblock %}</title>
+    <meta name="description" content="Research public M&A court opinions and agreement filings with source links.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='workspace.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='end_user.css') }}">
+    <script defer src="{{ url_for('static', filename='workspace.js') }}"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to research workspace</a>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="{{ url_for('home') }}" aria-label="Legal document intelligence home">
+          <span class="brand-code" aria-hidden="true">LDI</span>
+          <span class="brand-copy"><strong>Legal document intelligence</strong><small>Public record workspace</small></span>
+        </a>
+        <div class="header-boundary"><span aria-hidden="true"></span>Public sources only</div>
+        <nav aria-label="Primary navigation">
+          <a class="{{ 'active' if request.endpoint in ['home', 'ask'] else '' }}" href="{{ url_for('home') }}" {% if request.endpoint in ['home', 'ask'] %}aria-current="page"{% endif %}>Research</a>
+          <a class="{{ 'active' if request.endpoint == 'evidence' else '' }}" href="{{ url_for('evidence') }}" {% if request.endpoint == 'evidence' %}aria-current="page"{% endif %}>Evidence</a>
+          <a class="{{ 'active' if request.endpoint == 'corpus' else '' }}" href="{{ url_for('corpus') }}" {% if request.endpoint == 'corpus' %}aria-current="page"{% endif %}>Sources</a>
+          <a class="{{ 'active' if request.endpoint == 'how_it_works' else '' }}" href="{{ url_for('how_it_works') }}" {% if request.endpoint == 'how_it_works' %}aria-current="page"{% endif %}>Method</a>
+        </nav>
+      </div>
+    </header>
+    <main id="main-content" class="workspace-main">{% block content %}{% endblock %}</main>
+    <footer>
+      <div class="footer-inner">
+        <span>Public court opinions and SEC filings only.</span>
+        <span>Informational research aid, not legal advice.</span>
+        <a href="{{ url_for('evaluation') }}">Review release checks</a>
+      </div>
+    </footer>
+  </body>
+</html>

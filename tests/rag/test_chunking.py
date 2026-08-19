@@ -1,0 +1,242 @@
+from datetime import UTC, datetime
+
+import pytest
+
+from legal_rag.ingestion.models import (
+    DocumentRecord,
+    Element,
+    ExtractionInfo,
+    ExtractionStatus,
+    PageInfo,
+    ParagraphElement,
+    SecMetadata,
+    SourceInfo,
+    TableCell,
+    TableElement,
+)
+from legal_rag.rag.chunking import MAX_EMBED_TEXT_CHARS, chunk_document, validate_embedding_payloads
+
+
+def _record(elements: list[Element], page_count: int = 3) -> DocumentRecord:
+    return DocumentRecord(
+        document_id="deadbeef" * 8,
+        source=SourceInfo(file_name="f.pdf", file_path="f.pdf", file_hash_sha256="deadbeef" * 8),
+        extraction=ExtractionInfo(
+            model_id="prebuilt-layout",
+            api_version="2024-11-30",
+            pipeline_version="0.1.0",
+            extracted_at=datetime.now(UTC),
+            status=ExtractionStatus.SUCCESS,
+        ),
+        page_count=page_count,
+        pages=[
+            PageInfo(page_number=n, width=8.5, height=11.0, unit="inch")
+            for n in range(1, page_count + 1)
+        ],
+        structure=[],
+        elements=elements,
+    )
+
+
+def _sec_record(elements: list[Element]) -> DocumentRecord:
+    record = _record(elements)
+    return record.model_copy(
+        update={
+            "source": record.source.model_copy(
+                update={
+                    "sec_metadata": SecMetadata(
+                        canonical_url="https://www.sec.gov/Archives/edgar/data/1/example.htm"
+                    )
+                }
+            )
+        }
+    )
+
+
+def _para(element_id: str, text: str, page: int = 1, path: list[str] | None = None):
+    return ParagraphElement(
+        element_id=element_id, page_number=page, section_path=path or [], text=text
+    )
+
+
+def test_paragraphs_in_same_section_group_into_one_chunk() -> None:
+    record = _record(
+        [
+            _para("p1", "First paragraph.", path=["I. INTRO"]),
+            _para("p2", "Second paragraph.", path=["I. INTRO"]),
+        ]
+    )
+
+    chunks = chunk_document(record, title="Case A")
+
+    assert len(chunks) == 1
+    assert chunks[0].text == "First paragraph.\n\nSecond paragraph."
+    assert chunks[0].element_ids == ["p1", "p2"]
+    assert chunks[0].section_path == ["I. INTRO"]
+
+
+def test_section_change_starts_a_new_chunk() -> None:
+    record = _record(
+        [
+            _para("p1", "Intro text.", path=["I. INTRO"]),
+            _para("p2", "Analysis text.", path=["II. ANALYSIS"]),
+        ]
+    )
+
+    chunks = chunk_document(record, title="Case A")
+
+    assert len(chunks) == 2
+    assert chunks[0].section_path == ["I. INTRO"]
+    assert chunks[1].section_path == ["II. ANALYSIS"]
+
+
+def test_max_chars_splits_at_paragraph_boundary() -> None:
+    long_text = "x" * 900
+    record = _record(
+        [
+            _para("p1", long_text, path=["I"]),
+            _para("p2", long_text, path=["I"]),
+            _para("p3", long_text, path=["I"]),
+        ]
+    )
+
+    chunks = chunk_document(record, title="Case A", max_chars=1800)
+
+    assert len(chunks) == 2
+    assert chunks[0].element_ids == ["p1", "p2"]
+    assert chunks[1].element_ids == ["p3"]
+
+
+def test_footnote_markers_are_dropped() -> None:
+    record = _record(
+        [
+            _para("p1", "Real content.", path=["I"]),
+            _para("p2", "14", path=["I"]),
+            _para("p3", "32.", path=["I"]),
+        ]
+    )
+
+    chunks = chunk_document(record, title="Case A")
+
+    assert len(chunks) == 1
+    assert chunks[0].text == "Real content."
+    assert chunks[0].element_ids == ["p1"]
+
+
+def test_table_becomes_atomic_chunk() -> None:
+    table = TableElement(
+        element_id="t1",
+        page_number=2,
+        section_path=["III. VALUATION"],
+        row_count=2,
+        column_count=2,
+        cells=[
+            TableCell(row_index=0, column_index=0, text="Metric"),
+            TableCell(row_index=0, column_index=1, text="Value"),
+            TableCell(row_index=1, column_index=0, text="Deal price"),
+            TableCell(row_index=1, column_index=1, text="$15.00"),
+        ],
+    )
+    record = _record([_para("p1", "Before table.", path=["III. VALUATION"]), table])
+
+    chunks = chunk_document(record, title="Case A")
+
+    assert len(chunks) == 2
+    assert chunks[1].chunk_type == "table"
+    assert "Deal price | $15.00" in chunks[1].text
+    assert chunks[1].page_start == chunks[1].page_end == 2
+
+
+def test_embed_text_carries_title_and_section_path() -> None:
+    record = _record([_para("p1", "The court finds.", path=["II. ANALYSIS", "A. Standard"])])
+
+    chunks = chunk_document(record, title="Dell v. Magnetar (2017)")
+
+    assert chunks[0].embed_text.startswith("Dell v. Magnetar (2017) › II. ANALYSIS › A. Standard")
+    assert chunks[0].text == "The court finds."
+
+
+def test_page_range_spans_grouped_paragraphs() -> None:
+    record = _record(
+        [
+            _para("p1", "Starts on page one.", page=1, path=["I"]),
+            _para("p2", "Continues on page two.", page=2, path=["I"]),
+        ]
+    )
+
+    chunks = chunk_document(record, title="Case A")
+
+    assert chunks[0].page_start == 1
+    assert chunks[0].page_end == 2
+
+
+def test_embedding_payload_guard_rejects_malformed_oversized_chunk() -> None:
+    record = _record([_para("p1", "x" * MAX_EMBED_TEXT_CHARS, path=["I. TERMS"])])
+    chunks = chunk_document(record, title="Case A")
+
+    with pytest.raises(ValueError, match="embedding payload release gate failed"):
+        validate_embedding_payloads(chunks)
+
+
+def test_oversized_sec_paragraph_splits_without_losing_source_text() -> None:
+    text = " ".join(f"The Company shall perform obligation {index}." for index in range(180))
+    record = _sec_record([_para("p1", text, path=["ARTICLE V", "Section 5.1"])])
+
+    chunks = chunk_document(record, title="Example Merger Agreement", max_chars=900)
+
+    assert len(chunks) > 1
+    assert "".join(chunk.text for chunk in chunks) == text
+    assert all(chunk.element_ids == ["p1"] for chunk in chunks)
+    assert all(len(chunk.text) <= 900 for chunk in chunks)
+    validate_embedding_payloads(chunks)
+
+
+def test_oversized_sec_paragraph_prefers_nested_list_boundaries() -> None:
+    list_items = " ".join(
+        f"({letter}) The Company shall satisfy condition {letter} "
+        + "with commercially reasonable efforts. " * 16
+        for letter in ("a", "b", "c", "d")
+    )
+    text = "Opening covenant. " + list_items
+    record = _sec_record([_para("p1", text, path=["ARTICLE V"])])
+
+    chunks = chunk_document(record, title="Example Merger Agreement", max_chars=750)
+
+    assert "".join(chunk.text for chunk in chunks) == text
+    assert any(chunk.text.lstrip().startswith("(b)") for chunk in chunks)
+    assert any(chunk.text.lstrip().startswith("(c)") for chunk in chunks)
+    validate_embedding_payloads(chunks)
+
+
+def test_sec_paragraph_fragments_retain_anchor_and_enclosing_source_span() -> None:
+    text = " ".join(f"The parties agree to clause {index}." for index in range(160))
+    paragraph = ParagraphElement(
+        element_id="p1",
+        page_number=1,
+        section_path=["ARTICLE I"],
+        text=text,
+        source_anchor="section-1",
+        source_start=100,
+        source_end=100 + len(text),
+    )
+
+    chunks = chunk_document(
+        _sec_record([paragraph]), title="Example Merger Agreement", max_chars=700
+    )
+
+    assert len(chunks) > 1
+    assert all(chunk.source_anchor == "section-1" for chunk in chunks)
+    assert all(chunk.source_start == 100 for chunk in chunks)
+    assert all(chunk.source_end == 100 + len(text) for chunk in chunks)
+
+
+def test_sec_embedding_compacts_only_overlong_path_context() -> None:
+    path = ["ARTICLE I"] + [f"Section {index}: " + "x" * 900 for index in range(10)]
+    record = _sec_record([_para("p1", "Binding source text.", path=path)])
+
+    chunk = chunk_document(record, title="Example Merger Agreement")[0]
+
+    assert chunk.section_path == path
+    assert chunk.text == "Binding source text."
+    assert "Section 9:" in chunk.embed_text
+    validate_embedding_payloads([chunk])

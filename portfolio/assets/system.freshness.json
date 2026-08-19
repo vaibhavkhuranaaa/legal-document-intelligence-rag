@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "source": "architecture/system.mmd",
+  "sourceSha256": "5fb592f5a52fc2544d68dee8b73e9c7a79e5f593e533b46496afcc056dff0ea6",
+  "renderer": "@mermaid-js/mermaid-cli@11.12.0",
+  "svg": {
+    "path": "portfolio/assets/system.svg",
+    "sha256": "5ec38b55ce4eed7c749ceafdb2e602bf33341dcc478ff4c284a53eb0434d3dcb"
+  },
+  "png": {
+    "path": "portfolio/assets/system.png",
+    "sha256": "2a1eab33297fac4d9572e9f13afd4ab8876d1b1f5235460e04942f748084f32f"
+  }
+}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Release checks | Legal document intelligence{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div class="heading-index"><span>Checks</span><strong>04</strong></div>
+  <div><p class="section-kicker">Release evidence</p><h1>Know what was measured.</h1></div>
+  <p>These checks confirm expected-source retrieval and public-record traceability. They do not measure legal correctness or provide legal advice.</p>
+</section>
+
+<section class="release-register" aria-labelledby="release-heading">
+  <header><span class="panel-code">CHECK SET / {{ report.benchmark_version }}</span><h2 id="release-heading">Recorded release check</h2><p>{{ report.question_count }} sample questions across {{ report.corpus_document_count }} source opinions.</p></header>
+  {% if report.status == "complete" %}
+  <dl class="metric-ledger">
+    <div><dt>Expected sources found</dt><dd><strong>{{ "%.0f"|format(report.metrics.retrieval_hit_rate_at_k * 100) }}%</strong><span>within the first {{ report.retrieval_k }} passages</span></dd></div>
+    <div><dt>Source links verified</dt><dd><strong>{{ "%.0f"|format(report.metrics.citation_provenance_validity * 100) }}%</strong><span>registered public provenance</span></dd></div>
+  </dl>
+  {% else %}
+  <div class="notice empty"><strong>Checks pending</strong><span>Scores appear after a recorded release check.</span></div>
+  {% endif %}
+</section>
+
+<section class="method-register" aria-labelledby="method-heading">
+  <header><span class="panel-code">METHOD / FOUR STEPS</span><h2 id="method-heading">How the checks work</h2></header>
+  <ol>
+    <li><span>01</span><div><h3>Run the question set</h3><p>Submit each versioned sample question against the current public-source index.</p></div></li>
+    <li><span>02</span><div><h3>Inspect retrieval</h3><p>Check whether the expected source appears among the first {{ report.retrieval_k }} source excerpts.</p></div></li>
+    <li><span>03</span><div><h3>Resolve provenance</h3><p>Verify HTTPS canonical sources, registered identity, and valid page ranges where applicable.</p></div></li>
+    <li><span>04</span><div><h3>Publish the aggregate</h3><p>Display aggregate results only after the full release check succeeds.</p></div></li>
+  </ol>
+  <aside><strong>Interpretation boundary</strong><p>Retrieval and provenance can show that an answer is inspectable. They cannot establish that a legal interpretation is correct, complete, or appropriate for a matter.</p></aside>
+</section>
+{% endblock %}

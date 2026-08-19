@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Sources | Legal document intelligence{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div class="heading-index"><span>Register</span><strong>03</strong></div>
+  <div><p class="section-kicker">Public source register</p><h1>Inspect the collection.</h1></div>
+  <p>Every record has a canonical public link and registered identity. Court opinions use page citations; SEC filings use filing sections.</p>
+</section>
+
+<details class="filter-drawer">
+  <summary><span>Filter source register</span><strong>{{ documents|length }} records shown</strong></summary>
+  <form class="filters" method="get">
+    <label>Source type<select name="source_type"><option value="">All sources</option>{% for source_type in source_types %}<option value="{{ source_type }}" {% if source_type == selected_source_type %}selected{% endif %}>{{ source_type|replace('_', ' ')|title }}</option>{% endfor %}</select></label>
+    <label>Court<select name="court"><option value="">All courts</option>{% for court in courts %}<option value="{{ court }}" {% if court == selected_court %}selected{% endif %}>{{ court }}</option>{% endfor %}</select></label>
+    <label>Company<select name="company"><option value="">All companies</option>{% for company in companies %}<option value="{{ company }}" {% if company == selected_company %}selected{% endif %}>{{ company }}</option>{% endfor %}</select></label>
+    <label>Form<select name="form"><option value="">All forms</option>{% for form_type in form_types %}<option value="{{ form_type }}" {% if form_type == selected_form_type %}selected{% endif %}>{{ form_type }}</option>{% endfor %}</select></label>
+    <label>Year<select name="year"><option value="">All years</option>{% for year in years %}<option value="{{ year }}" {% if year|string == selected_year %}selected{% endif %}>{{ year }}</option>{% endfor %}</select></label>
+    <label>Topic<select name="topic"><option value="">All topics</option>{% for topic in topics %}<option value="{{ topic }}" {% if topic == selected_topic %}selected{% endif %}>{{ topic }}</option>{% endfor %}</select></label>
+    <button type="submit">Apply filters</button>
+  </form>
+</details>
+
+{% if documents %}
+<section class="source-register" aria-label="Registered public sources">
+  <div class="source-register-head" aria-hidden="true"><span>No.</span><span>Record</span><span>Authority</span><span>Issue</span><span>Source</span></div>
+  <ol>
+    {% for document in documents %}
+    <li>
+      <div class="source-number">{{ "%02d"|format(loop.index) }}</div>
+      <article class="source-identity"><span>{{ document.year }} / {{ document.source_kind|replace('_', ' ')|upper }}</span><h2>{{ document.display_name }}</h2><code>{{ document.document_id }}</code></article>
+      <dl class="source-authority">{% if document.source_kind == "sec_html" %}<div><dt>Company</dt><dd>{{ document.company_name }}</dd></div><div><dt>Filing</dt><dd>{{ document.form_type }}; {{ document.accession_number }}</dd></div><div><dt>Exhibit</dt><dd>{{ document.exhibit_identity }}</dd></div>{% else %}<div><dt>Court</dt><dd>{{ document.court }}</dd></div><div><dt>Case</dt><dd>{{ document.case_name }}</dd></div><div><dt>Docket</dt><dd>{{ document.docket_number }}</dd></div>{% endif %}</dl>
+      <p class="source-topic">{{ document.legal_topic }}</p>
+      <a class="source-link" href="{{ document.source_url }}" target="_blank" rel="noopener noreferrer">{{ document.source_link_label }} ↗</a>
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% else %}
+<div class="notice empty"><strong>No sources match these filters</strong><span>Clear one or more filters to return records to the register.</span></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Evidence | Legal document intelligence{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div class="heading-index"><span>Review</span><strong>02</strong></div>
+  <div><p class="section-kicker">Evidence review</p><h1>Read what the record says.</h1></div>
+  <p>Compare the retrieved passages, their source coordinates, and the official public record before relying on a response.</p>
+</section>
+
+<form class="query-bar" method="get" data-submit-state>
+  <div><label for="q">Question or issue</label><input id="q" name="q" value="{{ question }}" placeholder="Enter a company, case, agreement, or issue"></div>
+  <button type="submit" data-loading-label="Finding sources">Find source passages</button>
+</form>
+
+{% if error %}<div class="notice error" role="alert"><strong>Source search unavailable</strong><span>{{ error }}</span></div>{% endif %}
+{% if not question and not error %}<div class="notice empty"><strong>Start an evidence review</strong><span>Enter a focused company, case, agreement, or issue to retrieve source passages with their public-record coordinates.</span></div>{% endif %}
+{% if question and not matches and not error %}<div class="notice empty"><strong>No passages found</strong><span>Refine the question with a company, case, agreement, or legal issue.</span></div>{% endif %}
+{% if matches %}<div class="scope-banner"><strong>{{ matches|length }} passages retrieved</strong><span>Relevance compares passages within this result set. It does not measure legal correctness or certainty.</span></div>{% endif %}
+
+<ol class="evidence-ledger">
+{% for match in matches %}
+  <li id="evidence-{{ match.citation.marker }}">
+    <div class="evidence-index"><span>EXCERPT</span><strong>{{ "%02d"|format(match.citation.marker) }}</strong></div>
+    <article>
+      <div class="evidence-coordinate"><span>{{ match.citation|source_location }}</span><span>{{ match.citation.section_path|join(' › ') if match.citation.section_path else "Document body" }}</span></div>
+      <h2>{{ match.citation.document_title }}</h2>
+      <blockquote>{{ match.result.chunk.text }}</blockquote>
+      <div class="evidence-actions"><a href="{{ match.citation.source_url }}" target="_blank" rel="noopener noreferrer">{{ "Open official filing section" if match.citation.source_kind == "sec_html" else "Open original opinion at cited page" }} ↗</a><span>Source checksum: <code>{{ match.citation.source_checksum }}</code></span></div>
+    </article>
+    <aside class="relevance-register"><span>Source relevance</span><strong>{{ match.score }}<small>/100</small></strong><em>{{ match.tier }}</em></aside>
+  </li>
+{% endfor %}
+</ol>
+{% endblock %}

@@ -1,0 +1,200 @@
+"""Public-source provenance registry for the curated legal corpus."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from dataclasses import dataclass
+from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
+from urllib.request import Request, urlopen
+
+
+@dataclass(frozen=True)
+class CorpusDocument:
+    """A public corpus record whose checksum identifies its processed document."""
+
+    document_id: str
+    local_filename: str
+    display_name: str
+    case_name: str
+    docket_number: str
+    court: str
+    jurisdiction: str
+    year: int
+    legal_topic: str
+    source_url: str
+    source_kind: str = "court_pdf"
+    company_name: str | None = None
+    form_type: str | None = None
+    accession_number: str | None = None
+    filing_date: str | None = None
+    exhibit_identity: str | None = None
+
+    def source_page_url(self, page: int) -> str:
+        """Return a browser-supported best-effort PDF page fragment."""
+        if self.source_kind != "court_pdf":
+            raise ValueError("SEC HTML sources do not have stable PDF pages")
+        if page < 1:
+            raise ValueError("page must be positive")
+        parts = urlsplit(self.source_url)
+        return urlunsplit((parts.scheme, parts.netloc, parts.path, parts.query, f"page={page}"))
+
+    def source_section_url(self, anchor: str | None) -> str:
+        """Return the official source, retaining an existing HTML fragment when supplied."""
+        if self.source_kind == "court_pdf":
+            return self.source_page_url(1) if anchor is None else self.source_page_url(1)
+        if not anchor:
+            return self.source_url
+        parts = urlsplit(self.source_url)
+        return urlunsplit(
+            (parts.scheme, parts.netloc, parts.path, parts.query, anchor.removeprefix("#"))
+        )
+
+    @property
+    def source_link_label(self) -> str:
+        if self.source_kind == "court_pdf":
+            return "Open canonical court PDF"
+        return "Open official filing"
+
+
+class SourceRegistry:
+    """Validated source-of-truth registry, indexed by checksum/document id."""
+
+    def __init__(self, documents: list[CorpusDocument]) -> None:
+        self._documents = documents
+        self._by_document_id = {document.document_id: document for document in documents}
+        if len(self._by_document_id) != len(documents):
+            raise ValueError("dataset manifest contains duplicate document checksums")
+
+    @property
+    def documents(self) -> list[CorpusDocument]:
+        return list(self._documents)
+
+    @classmethod
+    def load(cls, path: Path) -> SourceRegistry:
+        payload = json.loads(path.read_text())
+        documents = [_parse_document(item) for item in payload.get("documents", [])]
+        if not documents:
+            raise ValueError("dataset manifest contains no documents")
+        return cls(documents)
+
+    def get(self, document_id: str) -> CorpusDocument | None:
+        return self._by_document_id.get(document_id.lower())
+
+    def require(self, document_id: str) -> CorpusDocument:
+        document = self.get(document_id)
+        if document is None:
+            raise ValueError(f"no public source is registered for document {document_id}")
+        return document
+
+    def validate_document_ids(self, document_ids: list[str]) -> None:
+        for document_id in document_ids:
+            self.require(document_id)
+
+    def verify_source_urls(
+        self, *, timeout_seconds: float = 15.0, sec_user_agent: str | None = None
+    ) -> None:
+        """Fail when a canonical public source no longer responds successfully.
+
+        This is an operator release check, deliberately not a web-request dependency.
+        """
+        for document in self._documents:
+            if document.source_kind == "sec_html" and not sec_user_agent:
+                raise ValueError("SEC URL verification requires a declared SEC User-Agent")
+            headers = (
+                {"User-Agent": sec_user_agent, "Range": "bytes=0-0"}
+                if document.source_kind == "sec_html"
+                else {}
+            )
+            # SEC's fair-access policy expects a declared contact identity and
+            # may reject anonymous HEAD requests. A one-byte GET verifies the
+            # official filing without downloading it or crawling EDGAR.
+            request = Request(  # noqa: S310
+                document.source_url,
+                headers=headers,
+                method="GET" if document.source_kind == "sec_html" else "HEAD",
+            )
+            try:
+                with urlopen(request, timeout=timeout_seconds) as response:  # noqa: S310
+                    if response.status >= 400:
+                        raise ValueError(f"{document.source_url} returned HTTP {response.status}")
+            except Exception as exc:
+                raise ValueError(f"public source is unavailable: {document.source_url}") from exc
+
+
+def _parse_document(item: dict) -> CorpusDocument:
+    checksum = str(item.get("sha256", "")).lower()
+    if len(checksum) != 64 or any(character not in "0123456789abcdef" for character in checksum):
+        raise ValueError(f"invalid sha256 for {item.get('local_filename', 'unknown document')}")
+    source_url = str(item.get("source_url", ""))
+    parsed = urlsplit(source_url)
+    if parsed.scheme != "https" or not parsed.netloc:
+        raise ValueError(f"source_url must be an absolute HTTPS URL: {source_url}")
+    source_kind = str(item.get("source_kind", "court_pdf"))
+    if source_kind not in {"court_pdf", "sec_html"}:
+        raise ValueError(f"unsupported source_kind: {source_kind}")
+    required = (
+        "local_filename",
+        "display_name",
+        "case_name",
+        "docket_number",
+        "court",
+        "jurisdiction",
+        "legal_topic",
+    )
+    missing = [key for key in required if not item.get(key)]
+    if source_kind == "sec_html":
+        missing.extend(
+            key
+            for key in (
+                "company_name",
+                "form_type",
+                "accession_number",
+                "filing_date",
+                "exhibit_identity",
+            )
+            if not item.get(key)
+        )
+    if missing:
+        raise ValueError(f"manifest record is missing {', '.join(missing)}")
+    return CorpusDocument(
+        document_id=checksum,
+        local_filename=str(item["local_filename"]),
+        display_name=str(item["display_name"]),
+        case_name=str(item["case_name"]),
+        docket_number=str(item["docket_number"]),
+        court=str(item["court"]),
+        jurisdiction=str(item["jurisdiction"]),
+        year=int(item["year"]),
+        legal_topic=str(item["legal_topic"]),
+        source_url=source_url,
+        source_kind=source_kind,
+        company_name=str(item["company_name"]) if item.get("company_name") else None,
+        form_type=str(item["form_type"]) if item.get("form_type") else None,
+        accession_number=str(item["accession_number"]) if item.get("accession_number") else None,
+        filing_date=str(item["filing_date"]) if item.get("filing_date") else None,
+        exhibit_identity=str(item["exhibit_identity"]) if item.get("exhibit_identity") else None,
+    )
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Validate the public legal-corpus registry")
+    parser.add_argument("--manifest", type=Path, default=Path("data/dataset_manifest.json"))
+    parser.add_argument("--check-urls", action="store_true")
+    parser.add_argument(
+        "--sec-user-agent",
+        help="declared organization and contact email for SEC URL verification",
+    )
+    args = parser.parse_args(argv)
+    registry = SourceRegistry.load(args.manifest)
+    if args.check_urls:
+        registry.verify_source_urls(sec_user_agent=args.sec_user_agent)
+    digest = hashlib.sha256(args.manifest.read_bytes()).hexdigest()[:12]
+    print(f"Validated {len(registry.documents)} public sources (manifest {digest}).")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
