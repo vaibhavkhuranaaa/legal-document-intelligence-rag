@@ -424,3 +424,20 @@ concern).
 payload can satisfy the fixed gate. Retrieval loses only excess ancestor
 context in the exceptional overlong-path case; the nearest section identity,
 full metadata, and all source text remain available.
+
+---
+
+## Later decisions
+
+From ADR-0014 onward each decision is its own file in
+[`docs/decisions/`](decisions/), because the entries grew past what a single
+running list reads well at. There is no ADR-0015; the number was skipped.
+
+| ADR | Decision |
+| --- | --- |
+| [0014](decisions/0014-separate-deployment-and-runtime-verification.md) | Separate deployment and runtime verification |
+| [0016](decisions/0016-replace-dashboard-with-filing-review-ledger.md) | Replace the dashboard with the filing review ledger |
+| [0017](decisions/0017-use-serverless-search-for-low-volume-demo.md) | Use Serverless Search for a low volume demo |
+| [0018](decisions/0018-promote-completed-analysis-over-the-query-workbench.md) | Promote completed analysis over the query workbench |
+| [0019](decisions/0019-publish-by-replacing-remote-main.md) | Publish by replacing remote main |
+| [0020](decisions/0020-stay-on-app-service-and-drop-to-the-free-plan.md) | Stay on App Service and drop to the Free plan |
