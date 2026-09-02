@@ -22,7 +22,7 @@ An HTTP success response from a named public route at a recorded time. Reachabil
 
 ## Responsive overflow
 
-The difference between a page's scroll width and client width at a named viewport. A result of zero confirms no horizontal overflow for that page and viewport. It does not replace assistive-technology testing.
+The difference between a page's scroll width and client width at a named viewport. Zero confirms no horizontal overflow for that page and viewport, and it does not replace assistive-technology testing. This is a property the workspace has always held rather than a result it improved, so it is asserted by the test suite across every public route at both checked viewports instead of being reported as a delivery metric.
 
 ## Touch target height
 
