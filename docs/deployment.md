@@ -92,6 +92,28 @@ document parity, hybrid-result parity, live evidence parity, and generated
 answer citation checks passed. Recovery now requires rebuilding a versioned
 index from the approved corpus artifacts rather than switching to r2.
 
+## Planned application-host migration
+
+Phase 8 evaluates replacing the current Linux B1 App Service with Azure
+Container Apps Consumption at `minReplicas=0`. This is a plan only. The running
+App Service, its public hostname, workflow, managed identity, settings, and B1
+plan have not changed.
+
+A later implementation requires separate approval and must package the existing
+Flask/Gunicorn runtime as an immutable Linux/amd64 image. It must preserve the
+120-second worker timeout, source-revision stamp, user-assigned managed identity,
+Azure OpenAI, Serverless Search, Blob Storage, Application Insights settings,
+and all existing route and evidence boundaries. Ingestion and indexing remain
+out of the web container.
+
+Do not move traffic until the candidate passes repeated cold starts,
+`/healthz`, all public routes, a known grounded answer with citations, an
+unrelated-question refusal, and exact source-revision verification. Keep App
+Service available as the rollback target. Do not delete `asp-legal-rag-prod`
+until the cutover is independently verified, the rollback window closes, and
+the owner separately approves deletion. The portfolio URL and public claims do
+not change for a hosting-only migration.
+
 ## Corpus release procedure
 
 Each corpus update is a versioned operator operation, independent of web-app

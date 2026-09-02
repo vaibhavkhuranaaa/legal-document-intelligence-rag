@@ -166,7 +166,7 @@ Status: **Complete. r3 promoted and migrated to usage-based Search**
 
 ## Phase 7: End-user research workspace
 
-Status: **Complete locally. Deployment pending approval**
+Status: **Complete and deployed**
 
 - The public UI uses plain, source-first language and does not expose internal
   retrieval implementation terms, AI-product wording, or em dashes.
@@ -178,3 +178,29 @@ Status: **Complete locally. Deployment pending approval**
   citations link to the public record. It explicitly does not claim legal
   correctness. Source-relevance scores similarly help readers choose excerpts
   to inspect without implying certainty.
+
+## Phase 8: Scale-to-zero application hosting
+
+Status: **Planned. Implementation not approved**
+
+- Evaluate replacing the current Linux B1 App Service with Azure Container Apps
+  Consumption configured with `minReplicas=0` for this low-traffic public demo.
+- Containerize the existing Flask/Gunicorn runtime without changing retrieval,
+  Blob Storage, Azure OpenAI, Serverless Search, corpus, routes, or evidence
+  boundaries.
+- Preserve the existing user-assigned managed identity and prove data-plane RBAC
+  before any traffic change. No credentials move into the image.
+- Require an immutable source-SHA image and verify `/healthz`, every public
+  route, a grounded answer with citations, refusal behavior, release stamping,
+  cold starts, and rollback while App Service remains available.
+- Keep the public portfolio and current host unchanged during planning. Delete
+  the B1 plan only after separate approval, a verified cutover, and a retained
+  rollback window.
+
+Azure documents that Container Apps Consumption can scale to zero with no usage
+charge while no replica is running. See [Container Apps pricing](https://azure.microsoft.com/en-us/pricing/details/container-apps/).
+Active starts, requests, logs, networking, and dependent services can still
+incur usage charges, so the current
+approximately $13.14 monthly B1 estimate is a savings target, not a guaranteed
+future bill. Recheck the [App Service Linux pricing](https://azure.microsoft.com/en-us/pricing/details/app-service/linux/)
+before approving a cutover.
