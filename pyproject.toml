@@ -39,7 +39,7 @@ vectorstore = []
 ui = []
 
 [dependency-groups]
-dev = ["ruff>=0.6", "pytest>=8.0"]
+dev = ["ruff>=0.6", "pytest>=8.0", "playwright>=1.47"]
 
 [build-system]
 requires = ["hatchling"]
