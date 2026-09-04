@@ -299,30 +299,6 @@ h4 {
   line-height: 1.65;
 }
 
-.heading-index {
-  align-self: stretch;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding-right: 18px;
-  border-right: 1px solid var(--rule-dark);
-}
-
-.heading-index span {
-  color: var(--muted);
-  font-size: 0.66rem;
-  font-weight: 750;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-}
-
-.heading-index strong {
-  font-size: 1.3rem;
-  font-variant-numeric: tabular-nums;
-}
-
 .panel-heading {
   min-width: 0;
   display: flex;
@@ -593,14 +569,6 @@ footer {
     grid-template-columns: minmax(0, 1fr);
     gap: 18px;
     padding-bottom: 22px;
-  }
-
-  .heading-index {
-    padding-right: 10px;
-  }
-
-  .heading-index strong {
-    font-size: 1rem;
   }
 
   .workspace-heading > p,
