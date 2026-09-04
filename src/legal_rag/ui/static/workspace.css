@@ -236,7 +236,7 @@ h4 {
 h1 {
   max-width: 16ch;
   margin-bottom: 0;
-  font-size: clamp(2.65rem, 5.1vw, 4.75rem);
+  font-size: clamp(2.25rem, 4vw, 3.4rem);
   font-weight: 750;
   line-height: 0.96;
   letter-spacing: -0.035em;
@@ -278,7 +278,7 @@ h4 {
 .workspace-heading,
 .page-heading {
   display: grid;
-  grid-template-columns: 86px minmax(0, 1.55fr) minmax(280px, 0.75fr);
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
   align-items: end;
   gap: 28px;
   padding-bottom: 44px;
@@ -540,12 +540,12 @@ footer {
 
   .workspace-heading,
   .page-heading {
-    grid-template-columns: 70px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .workspace-heading > p,
   .page-heading > p {
-    grid-column: 2;
+    grid-column: 1;
     margin-top: 8px;
   }
 }
@@ -590,7 +590,7 @@ footer {
 
   .workspace-heading,
   .page-heading {
-    grid-template-columns: 48px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 18px;
     padding-bottom: 22px;
   }
@@ -606,7 +606,7 @@ footer {
   .workspace-heading > p,
   .page-heading > p {
     grid-column: 1 / -1;
-    padding-left: 66px;
+    padding-left: 0;
   }
 
   .workspace-heading > p {
