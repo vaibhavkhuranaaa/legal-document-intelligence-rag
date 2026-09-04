@@ -1,10 +1,3 @@
-<!--
-THESIS: A filing-review ledger replaces the generic hero and card dashboard.
-OWN-WORLD: Cool paper, carbon ink, registry blue, ruled records, square controls.
-STORY: Frame one question, inspect bounded analysis, then open the source record.
-FIRST VIEWPORT: Research brief left; live collection register right; action inside the brief.
-FORM: Filing Review Ledger, assigned third grounded direction; asymmetric workbench staging; seed 3eed0cdd.
--->
 {% extends "base.html" %}
 {% block content %}
 {% if answer %}
@@ -17,18 +10,16 @@ FORM: Filing Review Ledger, assigned third grounded direction; asymmetric workbe
 </section>
 {% else %}
 <section class="workspace-heading" aria-labelledby="workspace-title">
-  <div class="heading-index"><span>Workspace</span><strong>01</strong></div>
   <div>
-    <p class="section-kicker">Public-source legal research</p>
-    <h1 id="workspace-title">Research the record,<br>line by line.</h1>
+    <h1 id="workspace-title">Research the public record.</h1>
   </div>
-  <p class="heading-brief">Search the registered public collection. Every response stays attached to its source.</p>
+  <p class="heading-brief">Ask one focused question. Every response stays attached to its registered court or filing source.</p>
 </section>
 
 <section class="research-workbench" aria-labelledby="research-heading">
   <div class="query-desk">
     <header class="panel-heading">
-      <div><span class="panel-code">BRIEF / 01</span><h2 id="research-heading">Research question</h2></div>
+      <div><h2 id="research-heading">Research question</h2></div>
       <span class="panel-instruction">One issue per search</span>
     </header>
     <form action="{{ url_for('ask') }}" method="post" data-submit-state>
@@ -48,7 +39,7 @@ FORM: Filing Review Ledger, assigned third grounded direction; asymmetric workbe
       <div class="examples-heading"><span>Issue prompts</span><small>Use as written or refine</small></div>
       <ol>
         {% for example in ["What conditions must be met before the Microsoft and Activision merger can close?", "How did the Delaware Supreme Court treat deal price in the Dell appraisal?", "What did the court decide about a material adverse effect in Akorn?"] %}
-        <li><a href="{{ url_for('home', q=example) }}"><span>{{ "%02d"|format(loop.index) }}</span><strong>{{ example }}</strong><i aria-hidden="true">Use question</i></a></li>
+        <li><a href="{{ url_for('home', q=example) }}"><strong>{{ example }}</strong><i aria-hidden="true">Use question</i></a></li>
         {% endfor %}
       </ol>
       <p class="visually-hidden">Try an example:</p>
@@ -57,14 +48,14 @@ FORM: Filing Review Ledger, assigned third grounded direction; asymmetric workbe
   </div>
 
   <aside class="collection-register" aria-labelledby="collection-heading">
-    <header class="panel-heading compact"><div><span class="panel-code">REGISTER / CURRENT</span><h2 id="collection-heading">Collection register</h2></div></header>
+    <header class="panel-heading compact"><div><h2 id="collection-heading">Collection register</h2></div></header>
     <dl class="register-list">
       <div><dt>Registered sources</dt><dd><strong>{{ source_count }}</strong><span>official court and filing records</span></dd></div>
       <div><dt>Searchable excerpts</dt><dd><strong>{{ chunk_count if chunk_count is not none else "Unavailable" }}</strong><span>from the promoted public collection</span></dd></div>
       <div><dt>Source authority</dt><dd><strong>Direct</strong><span>canonical court and SEC links</span></dd></div>
     </dl>
     <div class="register-note">
-      <span class="panel-code">ANALYSIS BOUNDARY</span>
+      <strong>Analysis boundary</strong>
       <p>The workspace checks retrieval and source traceability. It does not grade legal correctness or provide legal advice.</p>
     </div>
     <div class="register-links"><a href="{{ url_for('corpus') }}">Inspect source register</a><a href="{{ url_for('evaluation') }}">Review release checks</a></div>

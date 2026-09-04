@@ -91,7 +91,7 @@
 .examples li a {
   min-height: 58px;
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   color: var(--carbon);
