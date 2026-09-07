@@ -56,8 +56,6 @@ chroma_db/
 
 # IDE / OS
 .vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
 .idea/
 .DS_Store
 Thumbs.db
@@ -75,6 +73,10 @@ CLAUDE.md
 **/CLAUDE.md
 GEMINI.md
 **/GEMINI.md
+QWEN.md
+**/QWEN.md
+CODEX.md
+**/CODEX.md
 .agents/
 **/.agents/
 .claude/
@@ -117,3 +119,4 @@ scripts/project_kit.py
 .vscode/tasks.json
 .project/
 .impeccable/
+**/.impeccable/
